@@ -1,0 +1,11 @@
+# ============================================================
+# prod.txt - production ONLY: the minimum needed to serve the app.
+# ============================================================
+
+-r base.txt
+
+gunicorn~=23.0             # WSGI server (Django's runserver is NOT for prod)
+
+# -- Phase 4 candidates (evaluate with an ADR) --
+# whitenoise                # serve static files without Nginx (only if we simplify infra)
+# sentry-sdk                # production error monitoring

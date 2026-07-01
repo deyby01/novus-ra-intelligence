@@ -1,0 +1,26 @@
+# ============================================================
+# base.txt - core dependencies, installed in ALL environments
+# (dev and prod inherit them via `-r base.txt`).
+#
+# Versioning convention: `~=X.Y` (compatible release) pins the
+# major.minor version and allows patch updates. We'll confirm
+# exact available versions the day we build the image.
+# ============================================================
+
+Django~=5.2                        # 5.2 is the LTS release
+djangorestframework~=3.16          # the API framework
+djangorestframework-simplejwt~=5.5 # JWT auth (login/refresh)
+psycopg[binary]~=3.2               # PostgreSQL driver (v3, not psycopg2)
+django-environ~=0.12               # reads .env into settings
+django-cors-headers~=4.7           # allows requests from the frontend (Vite)
+django-filter~=25.1                # declarative filtering on list endpoints
+drf-spectacular~=0.28              # automatic OpenAPI schema + Swagger UI
+
+# -- Phase 1: Excel import + async tasks (uncomment when we get there) --
+# celery
+# redis
+# pandas
+# openpyxl
+
+# -- Phase 2: AI reports (uncomment when we get there) --
+# google-generativeai              # Gemini SDK (only imported by the adapter)

@@ -1,0 +1,37 @@
+# --- Secrets (NEVER commit) ---
+.env
+*.pem
+*.key
+
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+backend/staticfiles/
+backend/media/
+db.sqlite3
+
+# --- Node / React ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+
+# --- Docker ---
+*.override.yml
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# --- Workflow ---
+PROJECT_STATE.md

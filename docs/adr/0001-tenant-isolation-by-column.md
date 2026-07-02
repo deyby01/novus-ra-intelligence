@@ -1,6 +1,6 @@
 # ADR-0001 — Multi-tenant isolation via `organization_id` column
 
-- **Status:** accepted
+- **Status:** accepted (current-organization resolution refined by [ADR-0004](0004-user-organization-via-membership.md))
 - **Date:** 2026-07-01
 
 ## Context

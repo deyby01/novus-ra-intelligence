@@ -1,8 +1,9 @@
-"""
-Base settings shared by every environment.
+"""Base settings shared by every environment.
+
 Environment-specific overrides live in dev.py / prod.py.
 Values are read from the container environment (docker-compose env_file).
 """
+
 from pathlib import Path
 
 import environ

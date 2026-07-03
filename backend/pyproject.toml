@@ -20,6 +20,7 @@ ignore = [
     "D100",    # module docstring not required
     "D104",    # package (__init__.py) docstring not required
     "D105",    # magic-method docstring not required
+    "D106",    # nested-class docstring not required (Django Meta)
     "D107",    # __init__ docstring not required
     "D203",    # conflicts with D211 (ruff recommends disabling one)
     "D213",    # conflicts with D212
@@ -27,6 +28,9 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["ANN", "D"]      # test names are self-documenting

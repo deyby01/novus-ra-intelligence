@@ -1,0 +1,35 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings (trailing whitespace, blank lines)
+    "F",    # pyflakes (unused imports/variables)
+    "I",    # isort (import ordering)
+    "UP",   # pyupgrade (modern Python syntax)
+    "B",    # flake8-bugbear (likely bugs)
+    "ANN",  # flake8-annotations (function type hints)
+    "D",    # pydocstyle (docstrings)
+]
+ignore = [
+    "ANN002",  # *args need no annotation
+    "ANN003",  # **kwargs need no annotation
+    "D100",    # module docstring not required
+    "D104",    # package (__init__.py) docstring not required
+    "D105",    # magic-method docstring not required
+    "D107",    # __init__ docstring not required
+    "D203",    # conflicts with D211 (ruff recommends disabling one)
+    "D213",    # conflicts with D212
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["ANN", "D"]      # test names are self-documenting
+"manage.py" = ["ANN", "D"]        # Django-generated entry point
+"config/wsgi.py" = ["ANN", "D"]   # Django-generated entry point
+"config/asgi.py" = ["ANN", "D"]   # Django-generated entry point

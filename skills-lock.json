@@ -67,6 +67,12 @@
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "8bf292143ca93b00276a0de0fc5f84f2381f4690c5b0d32e99fa283a072f392f"
     },
+    "llm-council": {
+      "source": "aiwithremy/claude-skills-llm-council",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "3feb321ca398226f7f5ca25512226332211e6a75b6921f00bcfed0a780048356"
+    },
     "prototype": {
       "source": "mattpocock/skills",
       "sourceType": "github",

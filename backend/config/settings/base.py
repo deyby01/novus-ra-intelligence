@@ -19,6 +19,10 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
+# Browser origins allowed to call the API (the SPA). Empty by default;
+# dev.py adds the local Vite origin, prod reads it from the environment.
+CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=[])
+
 # --- Applications ---
 DJANGO_APPS = [
     "django.contrib.admin",

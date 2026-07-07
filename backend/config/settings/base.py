@@ -8,6 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 
 # BASE_DIR points to backend/  (base.py -> settings -> config -> backend = 3 parents)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -22,6 +23,10 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 # Browser origins allowed to call the API (the SPA). Empty by default;
 # dev.py adds the local Vite origin, prod reads it from the environment.
 CORS_ALLOWED_ORIGINS = env.list("DJANGO_CORS_ALLOWED_ORIGINS", default=[])
+
+# The SPA sends the tenant context in a custom header, which the browser only
+# forwards cross-origin if it is echoed in the CORS preflight response.
+CORS_ALLOW_HEADERS = (*default_headers, "x-organization")
 
 # --- Applications ---
 DJANGO_APPS = [
@@ -108,6 +113,13 @@ REST_FRAMEWORK = {
         "login": "10/min",
         "refresh": "30/min",
     },
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+    "DEFAULT_FILTER_BACKENDS": (
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.OrderingFilter",
+        "rest_framework.filters.SearchFilter",
+    ),
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Novus RA Intelligence API",

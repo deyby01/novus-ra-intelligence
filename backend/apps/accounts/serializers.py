@@ -13,3 +13,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "email"]
         read_only_fields = ["id", "email"]
+
+
+class LogoutSerializer(serializers.Serializer):
+    """Validate the refresh token supplied to the logout endpoint."""
+
+    refresh = serializers.CharField()

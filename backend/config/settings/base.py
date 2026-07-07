@@ -4,6 +4,7 @@ Environment-specific overrides live in dev.py / prod.py.
 Values are read from the container environment (docker-compose env_file).
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -93,10 +94,19 @@ AUTH_PASSWORD_VALIDATORS = [
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Novus RA Intelligence API",
     "VERSION": "0.1.0",
+}
+
+# --- JSON Web Tokens (simplejwt) ---
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
 # --- Internationalization ---

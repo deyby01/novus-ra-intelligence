@@ -1,19 +1,19 @@
-import { Button } from '@/components/ui/button'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { ProtectedRoute } from '@/features/auth/components/protected-route'
+import { LoginPage } from '@/features/auth/pages/login-page'
+import { HomePage } from '@/pages/home-page'
 
 function App() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-8">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Novus RA Intelligence
-        </h1>
-        <p className="text-muted-foreground">
-          Frontend scaffold ready — React, Vite, TypeScript, Tailwind &
-          shadcn/ui.
-        </p>
-      </div>
-      <Button>Get started</Button>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<HomePage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

@@ -14,3 +14,22 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+class TenantBaseModel(BaseModel):
+    """Abstract base for tenant-scoped tables carrying a denormalized org FK.
+
+    Every tenant-scoped table holds its own ``organization`` FK (ADR-0006) so
+    isolation is a uniform ``filter(organization=...)`` on each model. The FK
+    uses a string reference to avoid a circular import between core and
+    organizations.
+    """
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="%(app_label)s_%(class)s_set",
+    )
+
+    class Meta:
+        abstract = True

@@ -49,5 +49,13 @@ services:
       redis:
         condition: service_healthy
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+
 volumes:
   pgdata:

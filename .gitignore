@@ -37,3 +37,6 @@ venv/
 
 # --- Workflow ---
 PROJECT_STATE.md
+
+# Local preview server config (dev-only)
+.claude/launch.json

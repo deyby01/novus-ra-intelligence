@@ -1,4 +1,6 @@
-import { FileSpreadsheet } from 'lucide-react'
+import { FileSpreadsheet, Upload } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 import { DatasetCard } from '../components/dataset-card'
 import { useDatasets } from '../hooks'
 
@@ -7,11 +9,19 @@ export function DatasetsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Datasets</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          The imported and manual datasets in this workspace.
-        </p>
+      <header className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Datasets</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            The imported and manual datasets in this workspace.
+          </p>
+        </div>
+        <Button asChild>
+          <Link to="/datasets/import">
+            <Upload />
+            Import spreadsheet
+          </Link>
+        </Button>
       </header>
 
       {isPending && (
@@ -40,6 +50,12 @@ export function DatasetsPage() {
             Import an Excel file to turn it into a live dataset you can filter,
             chart, and report on.
           </p>
+          <Button asChild className="mt-2">
+            <Link to="/datasets/import">
+              <Upload />
+              Import a spreadsheet
+            </Link>
+          </Button>
         </div>
       )}
 

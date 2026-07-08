@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { clearSession } from '@/lib/session'
 import { getMe, login, logout } from './api'
 import { useAuthStore } from './store'
 
@@ -27,6 +28,6 @@ export function useLogout() {
         await logout(refreshToken)
       }
     },
-    onSettled: () => useAuthStore.getState().clear(),
+    onSettled: () => clearSession(),
   })
 }

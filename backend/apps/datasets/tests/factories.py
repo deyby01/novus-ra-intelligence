@@ -2,8 +2,9 @@
 
 import factory
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.datasets.models import Dataset, DatasetField, DatasetRow
+from apps.datasets.models import Dataset, DatasetField, DatasetRow, ImportJob
 from apps.organizations.models import Membership, Organization
 
 User = get_user_model()
@@ -80,3 +81,14 @@ class DatasetRowFactory(factory.django.DjangoModelFactory):
     dataset = factory.SubFactory(DatasetFactory)
     organization = factory.SelfAttribute("dataset.organization")
     data = factory.LazyFunction(dict)
+
+
+class ImportJobFactory(factory.django.DjangoModelFactory):
+    """Build import jobs sharing their dataset's organization."""
+
+    class Meta:
+        model = ImportJob
+
+    dataset = factory.SubFactory(DatasetFactory)
+    organization = factory.SelfAttribute("dataset.organization")
+    file = factory.LazyFunction(lambda: SimpleUploadedFile("import.xlsx", b"placeholder"))

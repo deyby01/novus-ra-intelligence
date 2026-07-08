@@ -11,6 +11,25 @@ export interface Dataset {
   updated_at: string
 }
 
+export type FieldType = 'text' | 'number' | 'date' | 'boolean' | 'select'
+
+export interface DatasetField {
+  id: string
+  dataset: string
+  key: string
+  label: string
+  field_type: FieldType
+  order: number
+}
+
+export interface DatasetRow {
+  id: string
+  dataset: string
+  data: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
 export type ImportJobStatus = 'pending' | 'processing' | 'done' | 'error'
 
 export interface ImportJob {

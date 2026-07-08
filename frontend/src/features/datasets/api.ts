@@ -1,11 +1,47 @@
 import { apiClient } from '@/lib/api-client'
 import type { Paginated } from '@/lib/api-types'
-import type { Dataset, DatasetSource, ImportJob } from './types'
+import type {
+  Dataset,
+  DatasetField,
+  DatasetRow,
+  DatasetSource,
+  ImportJob,
+} from './types'
 
 /** Fetch the current workspace's datasets (the active org flows via the header). */
 export async function getDatasets(): Promise<Dataset[]> {
   const { data } = await apiClient.get<Paginated<Dataset>>('/datasets/')
   return data.results
+}
+
+/** Fetch a single dataset by id (scoped to the active workspace). */
+export async function getDataset(id: string): Promise<Dataset> {
+  const { data } = await apiClient.get<Dataset>(`/datasets/${id}/`)
+  return data
+}
+
+/** Fetch a dataset's column definitions, ordered as the user arranged them. */
+export async function getDatasetFields(
+  datasetId: string,
+): Promise<DatasetField[]> {
+  const { data } = await apiClient.get<Paginated<DatasetField>>(
+    '/dataset-fields/',
+    { params: { dataset: datasetId, ordering: 'order' } },
+  )
+  return data.results
+}
+
+/** Fetch the first page of a dataset's rows, keeping the total count. */
+export async function getDatasetRows(
+  datasetId: string,
+): Promise<Paginated<DatasetRow>> {
+  const { data } = await apiClient.get<Paginated<DatasetRow>>(
+    '/dataset-rows/',
+    {
+      params: { dataset: datasetId },
+    },
+  )
+  return data
 }
 
 interface CreateDatasetInput {

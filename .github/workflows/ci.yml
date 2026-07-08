@@ -49,7 +49,7 @@ jobs:
           --health-retries 5
     env:
       DJANGO_DEBUG: "False"
-      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DJANGO_SETTINGS_MODULE: config.settings.test
       POSTGRES_DB: novus_test
       POSTGRES_USER: novus
       POSTGRES_HOST: localhost

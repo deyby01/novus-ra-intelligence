@@ -10,3 +10,15 @@ export interface Dataset {
   created_at: string
   updated_at: string
 }
+
+export type ImportJobStatus = 'pending' | 'processing' | 'done' | 'error'
+
+export interface ImportJob {
+  id: string
+  dataset: string
+  status: ImportJobStatus
+  rows_processed: number
+  errors: { detail?: string }
+  created_at: string
+  updated_at: string
+}

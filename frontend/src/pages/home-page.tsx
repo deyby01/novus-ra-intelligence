@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Wordmark } from '@/components/brand'
 import { Button } from '@/components/ui/button'
 import { useLogout, useMe } from '@/features/auth/hooks'
+import { WorkspaceIndicator } from '@/features/organizations/components/workspace-indicator'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -18,7 +19,13 @@ export function HomePage() {
   return (
     <div className="min-h-svh">
       <header className="flex items-center justify-between border-b px-6 py-4">
-        <Wordmark />
+        <div className="flex items-center gap-4">
+          <Wordmark />
+          <div className="bg-border hidden h-5 w-px sm:block" />
+          <div className="hidden sm:block">
+            <WorkspaceIndicator />
+          </div>
+        </div>
         <div className="flex items-center gap-4">
           {user && (
             <span className="text-muted-foreground text-sm">{user.email}</span>

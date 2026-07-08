@@ -1,6 +1,8 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/features/auth/store'
 import type { TokenPair } from '@/features/auth/types'
+import { useWorkspaceStore } from '@/features/organizations/store'
+import { clearSession } from '@/lib/session'
 
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1'
@@ -15,6 +17,10 @@ apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  const organizationId = useWorkspaceStore.getState().currentOrganizationId
+  if (organizationId) {
+    config.headers['X-Organization'] = organizationId
   }
   return config
 })
@@ -35,13 +41,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
     const original = error.config as RetryableConfig | undefined
-    const { refreshToken, clear } = useAuthStore.getState()
+    const { refreshToken } = useAuthStore.getState()
 
     if (error.response?.status !== 401 || !original || original._retry) {
       return Promise.reject(error)
     }
     if (!refreshToken) {
-      clear()
+      clearSession()
       return Promise.reject(error)
     }
 
@@ -51,7 +57,7 @@ apiClient.interceptors.response.use(
       original.headers.Authorization = `Bearer ${newAccess}`
       return apiClient(original)
     } catch (refreshError) {
-      clear()
+      clearSession()
       return Promise.reject(refreshError)
     }
   },

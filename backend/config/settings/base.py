@@ -49,6 +49,7 @@ LOCAL_APPS = [
     "apps.accounts",
     "apps.organizations",
     "apps.datasets",
+    "apps.dashboards",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -106,6 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "apps.core.exceptions.exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),

@@ -1,18 +1,23 @@
 """Tenant-scoped viewsets for datasets, their fields, rows, and import jobs."""
 
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
 from apps.core.tenancy import AuthoredModelViewSetMixin, TenantQuerysetMixin
 from apps.datasets.models import Dataset, DatasetField, DatasetRow, ImportJob
 from apps.datasets.serializers import (
+    AggregationQuerySerializer,
     DatasetFieldSerializer,
     DatasetRowSerializer,
     DatasetSerializer,
     ImportJobSerializer,
 )
+from apps.datasets.services.aggregation_service import aggregate_dataset
 from apps.datasets.tasks import process_import_job
 
 
@@ -29,6 +34,29 @@ class DatasetViewSet(
     filterset_fields = ["source"]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created_at"]
+
+    @action(detail=True, methods=["get"])
+    def aggregate(self, request: Request, pk: str | None = None) -> Response:
+        """Aggregate the dataset's rows for a widget (KPI, bar, or line)."""
+        dataset = self.get_object()
+        query = AggregationQuerySerializer(data=request.query_params, context={"dataset": dataset})
+        query.is_valid(raise_exception=True)
+        params = query.validated_data
+
+        results = aggregate_dataset(
+            dataset,
+            aggregation=params["agg"],
+            metric_key=params.get("metric"),
+            group_by_key=params.get("group_by"),
+        )
+        return Response(
+            {
+                "aggregation": params["agg"],
+                "metric": params.get("metric"),
+                "group_by": params.get("group_by"),
+                "results": results,
+            }
+        )
 
 
 class DatasetFieldViewSet(

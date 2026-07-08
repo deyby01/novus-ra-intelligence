@@ -3,6 +3,7 @@
 from rest_framework import serializers
 
 from apps.datasets.models import Dataset, DatasetField, DatasetRow, ImportJob
+from apps.datasets.services.aggregation_service import AGGREGATIONS
 
 ALLOWED_IMPORT_EXTENSIONS = (".xlsx", ".xls")
 
@@ -116,3 +117,40 @@ class ImportJobSerializer(TenantScopedDatasetSerializer):
             allowed = ", ".join(ALLOWED_IMPORT_EXTENSIONS)
             raise serializers.ValidationError(f"The file must be an Excel workbook ({allowed}).")
         return value
+
+
+class AggregationQuerySerializer(serializers.Serializer):
+    """Validate the query params of the dataset aggregation endpoint.
+
+    Instantiate with ``context={"dataset": dataset}``; field keys are checked
+    against that dataset's dynamic schema so typos surface as 400 responses
+    rather than silent empty results.
+    """
+
+    agg = serializers.ChoiceField(choices=AGGREGATIONS)
+    metric = serializers.CharField(required=False)
+    group_by = serializers.CharField(required=False)
+
+    def validate(self, attrs: dict) -> dict:
+        """Cross-check the params against the dataset's field definitions."""
+        dataset = self.context["dataset"]
+        fields_by_key = {field.key: field for field in dataset.fields.all()}
+
+        metric = attrs.get("metric")
+        if attrs["agg"] != "count":
+            if metric is None:
+                raise serializers.ValidationError(
+                    {"metric": f"A metric is required for '{attrs['agg']}'."}
+                )
+            metric_field = fields_by_key.get(metric)
+            if metric_field is None:
+                raise serializers.ValidationError({"metric": "Unknown field key for this dataset."})
+            if metric_field.field_type != DatasetField.FieldType.NUMBER:
+                raise serializers.ValidationError(
+                    {"metric": "The metric field must be a number field."}
+                )
+
+        group_by = attrs.get("group_by")
+        if group_by is not None and group_by not in fields_by_key:
+            raise serializers.ValidationError({"group_by": "Unknown field key for this dataset."})
+        return attrs

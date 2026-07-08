@@ -77,7 +77,7 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
         ...(metric !== 'none' && { metric }),
         ...(groupBy !== 'none' && { group_by: groupBy }),
       },
-      position: null, // Let auto-flow handle it
+      position: {}, // Let auto-flow handle it
     }
 
     create.mutate(input, {

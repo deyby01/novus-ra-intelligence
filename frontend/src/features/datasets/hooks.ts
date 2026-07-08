@@ -4,6 +4,9 @@ import { useWorkspaceStore } from '@/features/organizations/store'
 import {
   createDataset,
   createImportJob,
+  getDataset,
+  getDatasetFields,
+  getDatasetRows,
   getDatasets,
   getImportJob,
 } from './api'
@@ -22,6 +25,49 @@ export function useDatasets() {
     queryKey: ['datasets', organizationId],
     queryFn: getDatasets,
     enabled: isAuthenticated && Boolean(organizationId),
+  })
+}
+
+/** Whether a workspace-scoped query is allowed to run: authenticated + an org + a target. */
+function useTenantQueryEnabled(id: string): boolean {
+  const isAuthenticated = useAuthStore((state) => Boolean(state.accessToken))
+  const organizationId = useWorkspaceStore(
+    (state) => state.currentOrganizationId,
+  )
+  return isAuthenticated && Boolean(organizationId) && Boolean(id)
+}
+
+function useOrganizationId(): string | null {
+  return useWorkspaceStore((state) => state.currentOrganizationId)
+}
+
+/** Fetch a single dataset, keyed by the active organization. */
+export function useDataset(id: string) {
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: ['dataset', organizationId, id],
+    queryFn: () => getDataset(id),
+    enabled: useTenantQueryEnabled(id),
+  })
+}
+
+/** Fetch a dataset's column definitions, keyed by the active organization. */
+export function useDatasetFields(id: string) {
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: ['dataset-fields', organizationId, id],
+    queryFn: () => getDatasetFields(id),
+    enabled: useTenantQueryEnabled(id),
+  })
+}
+
+/** Fetch a dataset's rows, keyed by the active organization. */
+export function useDatasetRows(id: string) {
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: ['dataset-rows', organizationId, id],
+    queryFn: () => getDatasetRows(id),
+    enabled: useTenantQueryEnabled(id),
   })
 }
 

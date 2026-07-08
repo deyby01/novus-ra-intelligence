@@ -160,6 +160,20 @@ def test_update_cannot_repoint_widget_to_foreign_dashboard(client, org):
 
 
 @pytest.mark.django_db
+def test_update_cannot_repoint_widget_to_foreign_dataset(client, org):
+    widget = WidgetFactory(dashboard=DashboardFactory(organization=org))
+    foreign_dataset = DatasetFactory()
+
+    response = client.patch(
+        f"{WIDGETS_URL}{widget.id}/",
+        {"dataset": str(foreign_dataset.id)},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
 def test_delete_widget(client, org):
     widget = WidgetFactory(dashboard=DashboardFactory(organization=org))
 

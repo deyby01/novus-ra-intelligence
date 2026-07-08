@@ -6,6 +6,7 @@ import type {
   DatasetRow,
   DatasetSource,
   ImportJob,
+  RowData,
 } from './types'
 
 /** Fetch the current workspace's datasets (the active org flows via the header). */
@@ -74,4 +75,32 @@ export async function createImportJob(
 export async function getImportJob(id: string): Promise<ImportJob> {
   const { data } = await apiClient.get<ImportJob>(`/import-jobs/${id}/`)
   return data
+}
+
+/** Append a row to a dataset with a JSON document keyed by field key. */
+export async function createDatasetRow(
+  datasetId: string,
+  values: RowData,
+): Promise<DatasetRow> {
+  const { data } = await apiClient.post<DatasetRow>('/dataset-rows/', {
+    dataset: datasetId,
+    data: values,
+  })
+  return data
+}
+
+/** Replace a row's data document. */
+export async function updateDatasetRow(
+  id: string,
+  values: RowData,
+): Promise<DatasetRow> {
+  const { data } = await apiClient.patch<DatasetRow>(`/dataset-rows/${id}/`, {
+    data: values,
+  })
+  return data
+}
+
+/** Delete a row. */
+export async function deleteDatasetRow(id: string): Promise<void> {
+  await apiClient.delete(`/dataset-rows/${id}/`)
 }

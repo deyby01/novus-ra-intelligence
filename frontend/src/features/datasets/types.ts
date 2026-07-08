@@ -22,10 +22,13 @@ export interface DatasetField {
   order: number
 }
 
+/** A row's dynamic JSON document, keyed by each field's `key`. */
+export type RowData = Record<string, unknown>
+
 export interface DatasetRow {
   id: string
   dataset: string
-  data: Record<string, unknown>
+  data: RowData
   created_at: string
   updated_at: string
 }

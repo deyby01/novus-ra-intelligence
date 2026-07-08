@@ -3,14 +3,17 @@ import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
 import {
   createDataset,
+  createDatasetRow,
   createImportJob,
+  deleteDatasetRow,
   getDataset,
   getDatasetFields,
   getDatasetRows,
   getDatasets,
   getImportJob,
+  updateDatasetRow,
 } from './api'
-import type { ImportJob } from './types'
+import type { ImportJob, RowData } from './types'
 
 /**
  * Query the active workspace's datasets. Keyed by the organization id so
@@ -69,6 +72,32 @@ export function useDatasetRows(id: string) {
     queryFn: () => getDatasetRows(id),
     enabled: useTenantQueryEnabled(id),
   })
+}
+
+/** Mutations that add, edit, and remove rows, refreshing the dataset's row cache. */
+export function useRowMutations(datasetId: string) {
+  const queryClient = useQueryClient()
+  const organizationId = useOrganizationId()
+  const invalidate = () =>
+    queryClient.invalidateQueries({
+      queryKey: ['dataset-rows', organizationId, datasetId],
+    })
+
+  const create = useMutation({
+    mutationFn: (values: RowData) => createDatasetRow(datasetId, values),
+    onSuccess: () => void invalidate(),
+  })
+  const update = useMutation({
+    mutationFn: ({ id, values }: { id: string; values: RowData }) =>
+      updateDatasetRow(id, values),
+    onSuccess: () => void invalidate(),
+  })
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteDatasetRow(id),
+    onSuccess: () => void invalidate(),
+  })
+
+  return { create, update, remove }
 }
 
 /** Create a dataset from an uploaded Excel file and return its import job. */

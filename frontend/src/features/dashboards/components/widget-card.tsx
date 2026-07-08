@@ -4,6 +4,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Line,
   LineChart,
   Pie,
@@ -21,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useDatasetAggregation, useWidgetMutations } from '../hooks'
-import type { AggregationResult, Widget } from '../types'
+import type { AggregationResult, Widget, WidgetSize } from '../types'
 
 const COLORS = [
   '#2563eb',
@@ -30,7 +31,21 @@ const COLORS = [
   '#dc2626',
   '#9333ea',
   '#0891b2',
+  '#e11d48',
+  '#65a30d',
 ]
+
+/** Chart height varies by widget size. */
+function chartHeight(size?: WidgetSize): number {
+  switch (size) {
+    case 'large':
+      return 350
+    case 'medium':
+      return 300
+    default:
+      return 250
+  }
+}
 
 export function WidgetCard({ widget }: { widget: Widget }) {
   const { data, isPending, isError } = useDatasetAggregation({
@@ -48,20 +63,26 @@ export function WidgetCard({ widget }: { widget: Widget }) {
     }
   }
 
-  // Format the title based on the config
-  const title = `${widget.config.agg.toUpperCase()}${
-    widget.config.metric ? ` of ${widget.config.metric}` : ''
-  }${widget.config.group_by ? ` by ${widget.config.group_by}` : ''}`
+  // Use custom title if provided, otherwise generate one
+  const title =
+    widget.config.title ||
+    `${widget.config.agg.toUpperCase()}${
+      widget.config.metric ? ` of ${widget.config.metric}` : ''
+    }${widget.config.group_by ? ` by ${widget.config.group_by}` : ''}`
+
+  const height = chartHeight(widget.config.size)
 
   return (
     <div className="flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-center justify-between p-6 pb-2">
-        <h3 className="font-semibold leading-none tracking-tight">{title}</h3>
+      <div className="flex items-center justify-between p-4 pb-2 sm:p-6 sm:pb-2">
+        <h3 className="truncate pr-2 text-sm font-semibold leading-none tracking-tight sm:text-base">
+          {title}
+        </h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 shrink-0 p-0"
               disabled={remove.isPending}
             >
               <span className="sr-only">Open menu</span>
@@ -80,7 +101,7 @@ export function WidgetCard({ widget }: { widget: Widget }) {
         </DropdownMenu>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6 pt-0">
+      <div className="flex flex-1 items-center justify-center p-4 pt-0 sm:p-6 sm:pt-0">
         {isPending && (
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         )}
@@ -91,8 +112,12 @@ export function WidgetCard({ widget }: { widget: Widget }) {
           </div>
         )}
         {!isPending && !isError && data && (
-          <div className="h-[250px] w-full">
-            <ChartRenderer type={widget.chart_type} data={data} />
+          <div className="w-full" style={{ height }}>
+            <ChartRenderer
+              type={widget.chart_type}
+              data={data}
+              size={widget.config.size}
+            />
           </div>
         )}
       </div>
@@ -103,9 +128,11 @@ export function WidgetCard({ widget }: { widget: Widget }) {
 function ChartRenderer({
   type,
   data,
+  size,
 }: {
   type: Widget['chart_type']
   data: AggregationResult
+  size?: WidgetSize
 }) {
   const chartData = data.results.map((r) => ({
     name: r.group === null ? 'All' : String(r.group),
@@ -122,8 +149,8 @@ function ChartRenderer({
 
   if (type === 'kpi') {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-5xl font-bold tracking-tighter">
+      <div className="flex h-full flex-col items-center justify-center gap-1">
+        <div className="text-4xl font-bold tracking-tighter sm:text-5xl">
           {chartData[0]?.value?.toLocaleString() ?? '-'}
         </div>
       </div>
@@ -159,6 +186,11 @@ function ChartRenderer({
     )
   }
 
+  // Calculate bottom margin based on label length for rotated labels
+  const maxLabelLen = Math.max(...chartData.map((d) => d.name.length))
+  const needsRotation = chartData.length > 3 || maxLabelLen > 8
+  const bottomMargin = needsRotation ? 60 : 20
+
   if (type === 'pie') {
     return (
       <ResponsiveContainer width="100%" height="100%">
@@ -171,12 +203,18 @@ function ChartRenderer({
             }}
             itemStyle={{ color: '#000' }}
           />
+          <Legend
+            layout={size === 'small' ? 'horizontal' : 'vertical'}
+            verticalAlign={size === 'small' ? 'bottom' : 'middle'}
+            align={size === 'small' ? 'center' : 'right'}
+            wrapperStyle={{ fontSize: '12px' }}
+          />
           <Pie
             data={chartData}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={80}
+            innerRadius={50}
+            outerRadius={75}
             paddingAngle={2}
             dataKey="value"
           >
@@ -197,7 +235,7 @@ function ChartRenderer({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: 0, bottom: bottomMargin }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -209,8 +247,11 @@ function ChartRenderer({
             fontSize={12}
             tickLine={false}
             axisLine={false}
+            angle={needsRotation ? -35 : 0}
+            textAnchor={needsRotation ? 'end' : 'middle'}
+            interval={0}
           />
-          <YAxis fontSize={12} tickLine={false} axisLine={false} />
+          <YAxis fontSize={12} tickLine={false} axisLine={false} width={50} />
           <Tooltip
             cursor={{ fill: 'rgba(0,0,0,0.05)' }}
             contentStyle={{
@@ -230,7 +271,7 @@ function ChartRenderer({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: 0, bottom: bottomMargin }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
@@ -242,8 +283,11 @@ function ChartRenderer({
             fontSize={12}
             tickLine={false}
             axisLine={false}
+            angle={needsRotation ? -35 : 0}
+            textAnchor={needsRotation ? 'end' : 'middle'}
+            interval={0}
           />
-          <YAxis fontSize={12} tickLine={false} axisLine={false} />
+          <YAxis fontSize={12} tickLine={false} axisLine={false} width={50} />
           <Tooltip
             contentStyle={{
               borderRadius: '8px',

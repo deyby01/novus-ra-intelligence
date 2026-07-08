@@ -9,11 +9,14 @@ export interface Dashboard {
 
 export type ChartType = 'line' | 'bar' | 'pie' | 'kpi' | 'table'
 export type AggregationFunction = 'count' | 'sum' | 'avg' | 'min' | 'max'
+export type WidgetSize = 'small' | 'medium' | 'large'
 
 export interface WidgetConfig {
   agg: AggregationFunction
   metric?: string
   group_by?: string
+  title?: string
+  size?: WidgetSize
 }
 
 export interface WidgetPosition {

@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -19,7 +20,7 @@ import {
 import { useDatasets, useDatasetFields } from '@/features/datasets/hooks'
 import { useWidgetMutations } from '../hooks'
 import type { CreateWidgetInput } from '../api'
-import type { AggregationFunction, ChartType } from '../types'
+import type { AggregationFunction, ChartType, WidgetSize } from '../types'
 
 const CHART_TYPES: { value: ChartType; label: string }[] = [
   { value: 'kpi', label: 'KPI (Single Value)' },
@@ -37,6 +38,12 @@ const AGG_FUNCTIONS: { value: AggregationFunction; label: string }[] = [
   { value: 'max', label: 'Maximum' },
 ]
 
+const SIZE_OPTIONS: { value: WidgetSize; label: string }[] = [
+  { value: 'small', label: 'Small (1/3 width)' },
+  { value: 'medium', label: 'Medium (1/2 width)' },
+  { value: 'large', label: 'Large (Full width)' },
+]
+
 interface Props {
   dashboardId: string
   isOpen: boolean
@@ -47,11 +54,13 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
   const { data: datasets } = useDatasets()
   const { create } = useWidgetMutations(dashboardId)
 
+  const [title, setTitle] = useState('')
   const [datasetId, setDatasetId] = useState<string>('')
   const [chartType, setChartType] = useState<ChartType | ''>('')
   const [agg, setAgg] = useState<AggregationFunction | ''>('')
-  const [metric, setMetric] = useState<string>('none') // 'none' means empty/null
+  const [metric, setMetric] = useState<string>('none')
   const [groupBy, setGroupBy] = useState<string>('none')
+  const [size, setSize] = useState<WidgetSize>('small')
 
   // Fetch fields only if a dataset is selected
   const { data: fields } = useDatasetFields(datasetId)
@@ -63,6 +72,16 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
   const isMetricValid = !requiresMetric || metric !== 'none'
   const isFormValid =
     datasetId !== '' && chartType !== '' && agg !== '' && isMetricValid
+
+  const resetForm = () => {
+    setTitle('')
+    setDatasetId('')
+    setChartType('')
+    setAgg('')
+    setMetric('none')
+    setGroupBy('none')
+    setSize('small')
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,18 +95,15 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
         agg: agg as AggregationFunction,
         ...(metric !== 'none' && { metric }),
         ...(groupBy !== 'none' && { group_by: groupBy }),
+        ...(title.trim() && { title: title.trim() }),
+        size,
       },
-      position: {}, // Let auto-flow handle it
+      position: {},
     }
 
     create.mutate(input, {
       onSuccess: () => {
-        // Reset state and close
-        setDatasetId('')
-        setChartType('')
-        setAgg('')
-        setMetric('none')
-        setGroupBy('none')
+        resetForm()
         onClose()
       },
     })
@@ -95,7 +111,7 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add Widget</DialogTitle>
@@ -105,6 +121,16 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title (Optional)</Label>
+              <Input
+                id="title"
+                placeholder="e.g. Total Sales, Revenue by Region…"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="dataset">Dataset</Label>
               <Select value={datasetId} onValueChange={setDatasetId}>
@@ -123,23 +149,44 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
 
             {datasetId && (
               <>
-                <div className="grid gap-2">
-                  <Label htmlFor="chartType">Chart Type</Label>
-                  <Select
-                    value={chartType}
-                    onValueChange={(val) => setChartType(val as ChartType)}
-                  >
-                    <SelectTrigger id="chartType">
-                      <SelectValue placeholder="Select a chart type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CHART_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="chartType">Chart Type</Label>
+                    <Select
+                      value={chartType}
+                      onValueChange={(val) => setChartType(val as ChartType)}
+                    >
+                      <SelectTrigger id="chartType">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CHART_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="size">Widget Size</Label>
+                    <Select
+                      value={size}
+                      onValueChange={(val) => setSize(val as WidgetSize)}
+                    >
+                      <SelectTrigger id="size">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SIZE_OPTIONS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid gap-2">

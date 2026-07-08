@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { AddWidgetModal } from '../components/add-widget-modal'
 import { WidgetCard } from '../components/widget-card'
 import { useDashboard, useDashboardMutations, useWidgets } from '../hooks'
+import { sizeToColSpan } from '../utils'
 
 export function DashboardDetailPage() {
   const { dashboardId = '' } = useParams<{ dashboardId: string }>()
@@ -27,7 +28,7 @@ export function DashboardDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <Link
         to="/dashboards"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm transition-colors"
@@ -51,11 +52,11 @@ export function DashboardDetailPage() {
 
       {!isPending && !isError && dashboard && (
         <>
-          <header className="mb-6 flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-semibold tracking-tight">
+          <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
               {dashboard.name}
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button onClick={() => setIsAddingWidget(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add widget
@@ -92,11 +93,11 @@ export function DashboardDetailPage() {
           )}
 
           {widgetsPending && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-6 gap-4">
               {[0, 1].map((key) => (
                 <div
                   key={key}
-                  className="bg-muted h-[300px] animate-pulse rounded-xl"
+                  className="col-span-6 h-[300px] animate-pulse rounded-xl bg-muted sm:col-span-3"
                 />
               ))}
             </div>
@@ -131,9 +132,14 @@ export function DashboardDetailPage() {
           )}
 
           {widgets && widgets.length > 0 && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-6 gap-6">
               {widgets.map((widget) => (
-                <WidgetCard key={widget.id} widget={widget} />
+                <div
+                  key={widget.id}
+                  className={sizeToColSpan(widget.config.size)}
+                >
+                  <WidgetCard widget={widget} />
+                </div>
               ))}
             </div>
           )}

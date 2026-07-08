@@ -36,7 +36,12 @@ describe('DashboardDetailPage', () => {
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
     server.use(
       http.get('*/widgets/', () =>
-        HttpResponse.json({ count: 0, next: null, previous: null, results: [] }),
+        HttpResponse.json({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        }),
       ),
     )
   })
@@ -89,7 +94,9 @@ describe('DashboardDetailPage', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: /delete dashboard/i }),
     )
-    await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+    await userEvent.click(
+      screen.getByRole('button', { name: /confirm delete/i }),
+    )
 
     expect(onDelete).toHaveBeenCalledTimes(1)
   })

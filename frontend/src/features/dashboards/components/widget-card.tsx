@@ -249,7 +249,8 @@ function ChartRenderer({
             axisLine={false}
             angle={needsRotation ? -35 : 0}
             textAnchor={needsRotation ? 'end' : 'middle'}
-            interval={0}
+            minTickGap={15}
+            interval="preserveStartEnd"
           />
           <YAxis fontSize={12} tickLine={false} axisLine={false} width={50} />
           <Tooltip
@@ -285,7 +286,8 @@ function ChartRenderer({
             axisLine={false}
             angle={needsRotation ? -35 : 0}
             textAnchor={needsRotation ? 'end' : 'middle'}
-            interval={0}
+            minTickGap={15}
+            interval="preserveStartEnd"
           />
           <YAxis fontSize={12} tickLine={false} axisLine={false} width={50} />
           <Tooltip

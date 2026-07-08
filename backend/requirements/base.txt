@@ -16,11 +16,11 @@ django-cors-headers~=4.7           # allows requests from the frontend (Vite)
 django-filter~=25.1                # declarative filtering on list endpoints
 drf-spectacular~=0.28              # automatic OpenAPI schema + Swagger UI
 
-# -- Phase 1: Excel import + async tasks (uncomment when we get there) --
-# celery
-# redis
-# pandas
-# openpyxl
+# -- Phase 1: Excel import + async tasks --
+celery~=5.4                        # distributed task queue (async Excel import)
+redis~=5.2                         # Celery broker + result backend
+pandas~=2.2                        # Excel parsing + column-type inference
+openpyxl~=3.1                      # pandas engine for .xlsx files
 
 # -- Phase 2: AI reports (uncomment when we get there) --
 # google-generativeai              # Gemini SDK (only imported by the adapter)

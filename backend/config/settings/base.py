@@ -140,7 +140,14 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# --- Static files ---
+# --- Static & media files ---
 STATIC_URL = "static/"
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# --- Celery (async task queue) ---
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://redis:6379/1")
+CELERY_TASK_TRACK_STARTED = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

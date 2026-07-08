@@ -1,8 +1,10 @@
-"""Serializers for the Dataset, DatasetField, and DatasetRow APIs."""
+"""Serializers for the Dataset, DatasetField, DatasetRow, and ImportJob APIs."""
 
 from rest_framework import serializers
 
-from apps.datasets.models import Dataset, DatasetField, DatasetRow
+from apps.datasets.models import Dataset, DatasetField, DatasetRow, ImportJob
+
+ALLOWED_IMPORT_EXTENSIONS = (".xlsx", ".xls")
 
 
 class DatasetSerializer(serializers.ModelSerializer):
@@ -79,3 +81,38 @@ class DatasetRowSerializer(TenantScopedDatasetSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class ImportJobSerializer(TenantScopedDatasetSerializer):
+    """Serialize import jobs; only ``dataset`` and ``file`` are client-writable."""
+
+    class Meta:
+        model = ImportJob
+        fields = [
+            "id",
+            "dataset",
+            "file",
+            "status",
+            "rows_processed",
+            "errors",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "status",
+            "rows_processed",
+            "errors",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_file(self, value: object) -> object:
+        """Reject uploads whose name lacks an Excel extension."""
+        name = getattr(value, "name", "") or ""
+        if not name.lower().endswith(ALLOWED_IMPORT_EXTENSIONS):
+            allowed = ", ".join(ALLOWED_IMPORT_EXTENSIONS)
+            raise serializers.ValidationError(f"The file must be an Excel workbook ({allowed}).")
+        return value

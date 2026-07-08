@@ -1,8 +1,14 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Wordmark } from '@/components/brand'
 import { Button } from '@/components/ui/button'
 import { useLogout, useMe } from '@/features/auth/hooks'
 import { WorkspaceIndicator } from '@/features/organizations/components/workspace-indicator'
+import { cn } from '@/lib/utils'
+
+const navItems = [
+  { to: '/', label: 'Datasets', end: true },
+  { to: '/dashboards', label: 'Dashboards', end: false },
+]
 
 /** Shell for authenticated, workspace-scoped pages: the top bar plus page content. */
 export function AppLayout() {
@@ -25,6 +31,25 @@ export function AppLayout() {
           <div className="hidden sm:block">
             <WorkspaceIndicator />
           </div>
+          <nav className="flex items-center gap-1 text-sm">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  cn(
+                    'hover:text-foreground rounded-md px-2 py-1 font-medium transition-colors',
+                    isActive
+                      ? 'text-foreground bg-muted'
+                      : 'text-muted-foreground',
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
         <div className="flex items-center gap-4">
           {user && (

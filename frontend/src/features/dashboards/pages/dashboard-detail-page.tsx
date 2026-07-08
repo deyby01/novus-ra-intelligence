@@ -1,0 +1,150 @@
+import { ArrowLeft, BarChart3, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { AddWidgetModal } from '../components/add-widget-modal'
+import { WidgetCard } from '../components/widget-card'
+import { useDashboard, useDashboardMutations, useWidgets } from '../hooks'
+
+export function DashboardDetailPage() {
+  const { dashboardId = '' } = useParams<{ dashboardId: string }>()
+  const navigate = useNavigate()
+  const { data: dashboard, isPending, isError } = useDashboard(dashboardId)
+  const { remove } = useDashboardMutations()
+  const {
+    data: widgets,
+    isPending: widgetsPending,
+    isError: widgetsError,
+  } = useWidgets(dashboardId)
+
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [isAddingWidget, setIsAddingWidget] = useState(false)
+
+  const handleDelete = () => {
+    remove.mutate(dashboardId, {
+      onSuccess: () => navigate('/dashboards'),
+    })
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-8">
+      <Link
+        to="/dashboards"
+        className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm transition-colors"
+      >
+        <ArrowLeft className="size-4" />
+        Dashboards
+      </Link>
+
+      {isPending && (
+        <div className="space-y-4">
+          <div className="bg-muted h-8 w-56 animate-pulse rounded-lg" />
+          <div className="bg-muted h-64 animate-pulse rounded-xl" />
+        </div>
+      )}
+
+      {!isPending && isError && (
+        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
+          We couldn&apos;t load this dashboard. Please try again.
+        </p>
+      )}
+
+      {!isPending && !isError && dashboard && (
+        <>
+          <header className="mb-6 flex items-start justify-between gap-4">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {dashboard.name}
+            </h1>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setIsAddingWidget(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add widget
+              </Button>
+              {isConfirming ? (
+                <>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={remove.isPending}
+                  >
+                    Confirm Delete
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsConfirming(false)}
+                    disabled={remove.isPending}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={() => setIsConfirming(true)}>
+                  Delete dashboard
+                </Button>
+              )}
+            </div>
+          </header>
+
+          {remove.isError && (
+            <p className="text-destructive mb-4 text-sm">
+              We couldn&apos;t delete the dashboard. Please try again.
+            </p>
+          )}
+
+          {widgetsPending && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1].map((key) => (
+                <div
+                  key={key}
+                  className="bg-muted h-[300px] animate-pulse rounded-xl"
+                />
+              ))}
+            </div>
+          )}
+
+          {widgetsError && (
+            <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
+              We couldn&apos;t load the widgets. Please try again.
+            </p>
+          )}
+
+          {widgets?.length === 0 && (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
+              <div className="bg-muted grid size-12 place-items-center rounded-xl border">
+                <BarChart3 className="text-muted-foreground size-6" />
+              </div>
+              <h2 className="text-lg font-semibold tracking-tight">
+                No widgets yet
+              </h2>
+              <p className="text-muted-foreground max-w-sm text-sm">
+                Add widgets to visualize your data.
+              </p>
+              <Button
+                variant="outline"
+                className="mt-2"
+                onClick={() => setIsAddingWidget(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add widget
+              </Button>
+            </div>
+          )}
+
+          {widgets && widgets.length > 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {widgets.map((widget) => (
+                <WidgetCard key={widget.id} widget={widget} />
+              ))}
+            </div>
+          )}
+
+          <AddWidgetModal
+            dashboardId={dashboardId}
+            isOpen={isAddingWidget}
+            onClose={() => setIsAddingWidget(false)}
+          />
+        </>
+      )}
+    </div>
+  )
+}

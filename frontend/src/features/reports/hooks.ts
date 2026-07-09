@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, type UseQueryResult, useQueryClient } from '@tanstack/react-query'
 import { reportsApi } from './api'
-import type { CreateReportPayload } from './types'
+import type { CreateReportPayload, Report } from './types'
 
 export const reportKeys = {
   all: ['reports'] as const,
@@ -18,13 +18,13 @@ export function useReports(datasetId: string) {
   })
 }
 
-export function useReport(id: string, options?: { refetchInterval?: number | false }) {
+export function useReport(id: string, options?: any): UseQueryResult<Report, Error> {
   return useQuery({
     queryKey: reportKeys.detail(id),
     queryFn: () => reportsApi.retrieve(id),
     enabled: Boolean(id),
-    refetchInterval: options?.refetchInterval,
-  })
+    ...options,
+  }) as UseQueryResult<Report, Error>
 }
 
 export function useReportMutations(datasetId: string) {

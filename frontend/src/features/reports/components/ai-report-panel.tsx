@@ -2,6 +2,7 @@ import { Sparkles, AlertCircle, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Button } from '@/components/ui/button'
 import { useReport, useReports, useReportMutations } from '../hooks'
+import type { Report } from '../types'
 
 interface AiReportPanelProps {
   datasetId: string
@@ -14,7 +15,7 @@ export function AiReportPanel({ datasetId }: AiReportPanelProps) {
   // We simply pick the latest report, assuming the list endpoint returns them ordered by created_at DESC or we sort them.
   // The backend currently returns all reports, so we grab the last one added (or the one with the largest id/date).
   const latestReport = reports && reports.length > 0 
-    ? reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] 
+    ? [...reports].sort((a: Report, b: Report) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] 
     : null
 
   const handleGenerate = () => {
@@ -60,7 +61,7 @@ export function AiReportPanel({ datasetId }: AiReportPanelProps) {
 function ReportView({ reportId, onRegenerate, isCreating }: { reportId: string, onRegenerate: () => void, isCreating: boolean }) {
   // Poll every 3 seconds if status is PENDING
   const { data: report } = useReport(reportId, {
-    refetchInterval: (query) => (query.state.data?.status === 'PENDING' ? 3000 : false),
+    refetchInterval: (query: any) => (query.state.data?.status === 'PENDING' ? 3000 : false),
   })
 
   if (!report) return null

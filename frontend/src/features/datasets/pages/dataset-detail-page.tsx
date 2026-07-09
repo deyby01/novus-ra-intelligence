@@ -150,15 +150,15 @@ export function DatasetDetailPage() {
                       {rows.data.count} rows.
                     </p>
                   )}
-                  
-                  {/* AI Report Section */}
-                  <div className="mt-12">
-                    <AiReportPanel datasetId={datasetId} />
-                  </div>
                 </>
               )}
             </>
           )}
+          
+          {/* AI Report Section */}
+          <div className="mt-12 border-t border-border pt-8">
+            <AiReportPanel datasetId={datasetId} />
+          </div>
         </>
       )}
     </div>

@@ -1,5 +1,7 @@
 """Tests for the tenant-scoped report PDF export action and renderer."""
 
+from unittest.mock import patch
+
 import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -52,6 +54,26 @@ def test_pdf_for_own_completed_report_returns_pdf(client, org):
     assert response["Content-Type"] == "application/pdf"
     assert "attachment" in response["Content-Disposition"]
     assert response.content.startswith(b"%PDF")
+
+
+@pytest.mark.django_db
+@patch("apps.reports.views.render_report_pdf", return_value=b"%PDF-fake")
+def test_pdf_is_cached_after_first_render(mock_render, client, org):
+    """A second download of the same report is served from cache, not re-rendered."""
+    report = ReportFactory(
+        organization=org,
+        status=ReportStatus.COMPLETED,
+        content=TABLE_MARKDOWN,
+    )
+
+    first = client.get(_pdf_url(report.id))
+    second = client.get(_pdf_url(report.id))
+
+    assert mock_render.call_count == 1
+    for response in (first, second):
+        assert response.status_code == status.HTTP_200_OK
+        assert response["Content-Type"] == "application/pdf"
+        assert response.content == b"%PDF-fake"
 
 
 @pytest.mark.django_db

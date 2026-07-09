@@ -1,5 +1,6 @@
 import re
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from rest_framework import mixins, status, viewsets
@@ -7,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 
 from apps.core.tenancy import TenantQuerysetMixin
 from apps.datasets.models import Dataset
@@ -37,6 +39,14 @@ class ReportViewSet(
     filterset_fields = ["dataset", "status"]
     ordering_fields = ["created_at"]
 
+    def get_throttles(self) -> list[BaseThrottle]:
+        """Throttle only the expensive actions (paid AI call, PDF render)."""
+        scope = {"create": "reports_generate", "pdf": "reports_pdf"}.get(self.action)
+        if scope:
+            self.throttle_scope = scope
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
+
     def create(self, request: Request, *args, **kwargs) -> Response:
         """Request a new AI report for a dataset in the current organization."""
         dataset_id = request.data.get("dataset")
@@ -62,7 +72,13 @@ class ReportViewSet(
                 {"detail": "Report is not ready."},
                 status=status.HTTP_409_CONFLICT,
             )
-        pdf_bytes = render_report_pdf(report)
+        # A report's content is immutable for its id, so the rendered bytes never
+        # go stale; cache them to skip the synchronous render on repeat downloads.
+        cache_key = f"report-pdf:{report.id}"
+        pdf_bytes = cache.get(cache_key)
+        if pdf_bytes is None:
+            pdf_bytes = render_report_pdf(report)
+            cache.set(cache_key, pdf_bytes, timeout=60 * 60 * 24)
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{_pdf_filename(report)}"'
         return response

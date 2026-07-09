@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import AuthoredModel, BaseModel
+from apps.core.models import AuthoredModel, TenantBaseModel
 from apps.datasets.models import Dataset
 
 
@@ -13,7 +13,7 @@ class ReportStatus(models.TextChoices):
     FAILED = "FAILED", _("Failed")
 
 
-class Report(BaseModel, AuthoredModel):
+class Report(TenantBaseModel, AuthoredModel):
     """Represents an AI-generated natural language report analyzing a specific Dataset."""
 
     dataset = models.ForeignKey(

@@ -154,7 +154,7 @@ export function DatasetDetailPage() {
               )}
             </>
           )}
-          
+
           {/* AI Report Section */}
           <div className="mt-12 border-t border-border pt-8">
             <AiReportPanel datasetId={datasetId} />

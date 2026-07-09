@@ -10,7 +10,12 @@ def test_report_creation():
     user = UserFactory()
     dataset = DatasetFactory(created_by=user)
 
-    report = Report.objects.create(dataset=dataset, created_by=user, updated_by=user)
+    report = Report.objects.create(
+        dataset=dataset,
+        organization=dataset.organization,
+        created_by=user,
+        updated_by=user,
+    )
 
     assert report.status == ReportStatus.PENDING
     assert report.content == ""
@@ -23,7 +28,11 @@ def test_report_cascade_delete():
     """Test that a report is deleted if its dataset is deleted."""
     user = UserFactory()
     dataset = DatasetFactory(created_by=user)
-    Report.objects.create(dataset=dataset, created_by=user)
+    Report.objects.create(
+        dataset=dataset,
+        organization=dataset.organization,
+        created_by=user,
+    )
 
     assert Report.objects.count() == 1
     dataset.delete()

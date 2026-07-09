@@ -153,4 +153,7 @@ CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://redis:6379/1")
 CELERY_TASK_TRACK_STARTED = True
 
+# --- AI provider (Google Gemini, Phase 2) ---
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

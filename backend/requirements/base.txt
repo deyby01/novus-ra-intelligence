@@ -23,4 +23,4 @@ pandas~=2.2                        # Excel parsing + column-type inference
 openpyxl~=3.1                      # pandas engine for .xlsx files
 
 # -- Phase 2: AI reports (uncomment when we get there) --
-# google-generativeai              # Gemini SDK (only imported by the adapter)
+google-genai~=0.3           # Gemini SDK (only imported by the adapter)

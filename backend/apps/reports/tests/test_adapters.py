@@ -12,8 +12,9 @@ def test_fake_ai_provider():
     assert result == "Mocked reply for: Hello AI"
 
 
-def test_gemini_adapter_missing_key():
-    """Test that GeminiAdapter raises ValueError when no API key is provided."""
+def test_gemini_adapter_missing_key(settings):
+    """Test that GeminiAdapter raises ValueError when no API key is configured."""
+    settings.GEMINI_API_KEY = ""
     with pytest.raises(ValueError, match="GEMINI_API_KEY is not configured."):
         GeminiAdapter(api_key="")
 

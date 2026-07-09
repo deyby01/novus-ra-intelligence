@@ -2,7 +2,6 @@ import { Sparkles, AlertCircle, Loader2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Button } from '@/components/ui/button'
 import { useReport, useReports, useReportMutations } from '../hooks'
-import type { Report } from '../types'
 
 interface AiReportPanelProps {
   datasetId: string

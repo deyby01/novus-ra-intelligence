@@ -115,6 +115,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "login": "10/min",
         "refresh": "30/min",
+        "reports_generate": "30/hour",
+        "reports_pdf": "120/hour",
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
@@ -152,6 +154,17 @@ MEDIA_ROOT = BASE_DIR / "media"
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://redis:6379/1")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://redis:6379/1")
 CELERY_TASK_TRACK_STARTED = True
+
+# --- Cache (Redis, dedicated DB) ---
+# A shared cache across workers: backs DRF throttle counters (correct under
+# multiple workers) and app-level caching (e.g. rendered report PDFs). Uses a
+# dedicated Redis DB (db 2) so it never collides with Celery's keyspace (db 1).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_CACHE_URL", default="redis://redis:6379/2"),
+    }
+}
 
 # --- AI provider (Google Gemini, Phase 2) ---
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")

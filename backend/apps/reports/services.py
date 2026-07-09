@@ -17,6 +17,7 @@ class ReportService:
         with transaction.atomic():
             report = Report.objects.create(
                 dataset=dataset,
+                organization=dataset.organization,
                 created_by=user,
                 updated_by=user,
             )

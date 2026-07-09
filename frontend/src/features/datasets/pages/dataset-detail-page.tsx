@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { DatasetTable } from '../components/dataset-table'
 import { RowEditor } from '../components/row-editor'
+import { AiReportPanel } from '@/features/reports/components/ai-report-panel'
 import {
   useDataset,
   useDatasetFields,
@@ -153,6 +154,11 @@ export function DatasetDetailPage() {
               )}
             </>
           )}
+
+          {/* AI Report Section */}
+          <div className="mt-12 border-t border-border pt-8">
+            <AiReportPanel datasetId={datasetId} />
+          </div>
         </>
       )}
     </div>

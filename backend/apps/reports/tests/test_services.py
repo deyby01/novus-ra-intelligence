@@ -19,6 +19,7 @@ def test_request_report(mock_delay):
 
     assert report.status == ReportStatus.PENDING
     assert report.dataset == dataset
+    assert report.organization == dataset.organization
     assert report.created_by == user
 
     mock_delay.assert_called_once_with(str(report.id))
@@ -35,7 +36,12 @@ def test_generate_report_task_success(mock_adapter_class):
     DatasetRowFactory(dataset=dataset, data={"age": 25, "city": "NY"})
     DatasetRowFactory(dataset=dataset, data={"age": 30, "city": "SF"})
 
-    report = Report.objects.create(dataset=dataset, created_by=user, updated_by=user)
+    report = Report.objects.create(
+        dataset=dataset,
+        organization=dataset.organization,
+        created_by=user,
+        updated_by=user,
+    )
 
     # Mock the AI provider
     mock_adapter_instance = mock_adapter_class.return_value
@@ -64,7 +70,12 @@ def test_generate_report_task_empty_dataset(mock_adapter_class):
     """Test that a dataset with no rows results in a FAILED report."""
     user = UserFactory()
     dataset = DatasetFactory(created_by=user)
-    report = Report.objects.create(dataset=dataset, created_by=user, updated_by=user)
+    report = Report.objects.create(
+        dataset=dataset,
+        organization=dataset.organization,
+        created_by=user,
+        updated_by=user,
+    )
 
     generate_report_task(str(report.id))
 
@@ -82,7 +93,12 @@ def test_generate_report_task_ai_failure(mock_adapter_class):
     user = UserFactory()
     dataset = DatasetFactory(created_by=user)
     DatasetRowFactory(dataset=dataset, data={"age": 25})
-    report = Report.objects.create(dataset=dataset, created_by=user, updated_by=user)
+    report = Report.objects.create(
+        dataset=dataset,
+        organization=dataset.organization,
+        created_by=user,
+        updated_by=user,
+    )
 
     mock_adapter_instance = mock_adapter_class.return_value
     mock_adapter_instance.generate_text.side_effect = Exception("API Error")

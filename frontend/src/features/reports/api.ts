@@ -19,4 +19,11 @@ export const reportsApi = {
     const { data } = await apiClient.post<Report>('/reports/', payload)
     return data
   },
+
+  downloadPdf: async (id: string): Promise<Blob> => {
+    const { data } = await apiClient.get<Blob>(`/reports/${id}/pdf/`, {
+      responseType: 'blob',
+    })
+    return data
+  },
 }

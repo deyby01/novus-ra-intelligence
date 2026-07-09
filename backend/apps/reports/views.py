@@ -1,14 +1,25 @@
+import re
+
 from django.core.exceptions import ValidationError
+from django.http import HttpResponse
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.core.tenancy import TenantQuerysetMixin
 from apps.datasets.models import Dataset
-from apps.reports.models import Report
+from apps.reports.models import Report, ReportStatus
+from apps.reports.pdf import render_report_pdf
 from apps.reports.serializers import ReportSerializer
 from apps.reports.services import ReportService
+
+
+def _pdf_filename(report: Report) -> str:
+    """Build a safe ASCII PDF filename from the dataset name."""
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", report.dataset.name).strip("-").lower()
+    return f"{slug}-report.pdf" if slug else f"report-{report.id}.pdf"
 
 
 class ReportViewSet(
@@ -41,3 +52,17 @@ class ReportViewSet(
         report = ReportService.request_report(dataset=dataset, user=request.user)
         serializer = self.get_serializer(report)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get"], url_path="pdf")
+    def pdf(self, request: Request, pk: str | None = None) -> HttpResponse | Response:
+        """Download a completed report as a server-rendered PDF."""
+        report = self.get_object()  # tenant-scoped: a foreign id 404s here.
+        if report.status != ReportStatus.COMPLETED:
+            return Response(
+                {"detail": "Report is not ready."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        pdf_bytes = render_report_pdf(report)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{_pdf_filename(report)}"'
+        return response

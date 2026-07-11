@@ -20,7 +20,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.fields.json import KeyTextTransform, KeyTransform
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Substr
 from django.db.models.lookups import Exact
 
 from apps.datasets.models import Dataset, DatasetRow
@@ -50,6 +50,7 @@ def aggregate_dataset(
     aggregation: str,
     metric_key: str | None = None,
     group_by_key: str | None = None,
+    bucket: str | None = None,
 ) -> list[dict[str, object]]:
     """Aggregate the dataset's rows, optionally grouped by a field key.
 
@@ -62,6 +63,8 @@ def aggregate_dataset(
         aggregation: One of :data:`AGGREGATIONS`.
         metric_key: The field key to aggregate; unused for ``count``.
         group_by_key: The field key to group by, or ``None`` for a single total.
+        bucket: When ``"month"`` and grouping is requested, group by the group
+            key's ``"YYYY-MM"`` prefix instead of its raw text value.
 
     Returns:
         A list of ``{"group", "value"}`` entries — exactly one, with ``group``
@@ -87,8 +90,13 @@ def aggregate_dataset(
     if group_by_key is None:
         return [{"group": None, "value": queryset.aggregate(value=expression)["value"]}]
 
+    group_value = KeyTextTransform(group_by_key, "data")
+    if bucket == "month":
+        # ISO date strings sort chronologically, so the "YYYY-MM" prefix buckets
+        # rows by month without any date cast.
+        group_value = Substr(group_value, 1, 7)
     grouped = (
-        queryset.annotate(group=KeyTextTransform(group_by_key, "data"))
+        queryset.annotate(group=group_value)
         .values("group")
         .annotate(value=expression)
         .order_by("group")[:MAX_GROUPS]

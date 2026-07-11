@@ -18,6 +18,7 @@ from apps.datasets.serializers import (
     ImportJobSerializer,
 )
 from apps.datasets.services.aggregation_service import aggregate_dataset
+from apps.datasets.services.overview_service import build_dataset_overview
 from apps.datasets.tasks import process_import_job
 
 
@@ -57,6 +58,12 @@ class DatasetViewSet(
                 "results": results,
             }
         )
+
+    @action(detail=True, methods=["get"], url_path="overview")
+    def overview(self, request: Request, pk: str | None = None) -> Response:
+        """Return a deterministic, ephemeral overview (KPIs + charts) of the dataset."""
+        dataset = self.get_object()
+        return Response(build_dataset_overview(dataset))
 
 
 class DatasetFieldViewSet(

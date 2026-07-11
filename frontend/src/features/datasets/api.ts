@@ -3,6 +3,7 @@ import type { Paginated } from '@/lib/api-types'
 import type {
   Dataset,
   DatasetField,
+  DatasetOverview,
   DatasetRow,
   DatasetSource,
   ImportJob,
@@ -18,6 +19,14 @@ export async function getDatasets(): Promise<Dataset[]> {
 /** Fetch a single dataset by id (scoped to the active workspace). */
 export async function getDataset(id: string): Promise<Dataset> {
   const { data } = await apiClient.get<Dataset>(`/datasets/${id}/`)
+  return data
+}
+
+/** Fetch a dataset's ephemeral overview (headline counts + auto-built widgets). */
+export async function getDatasetOverview(id: string): Promise<DatasetOverview> {
+  const { data } = await apiClient.get<DatasetOverview>(
+    `/datasets/${id}/overview/`,
+  )
   return data
 }
 

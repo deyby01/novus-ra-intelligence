@@ -8,6 +8,7 @@ import {
   deleteDatasetRow,
   getDataset,
   getDatasetFields,
+  getDatasetOverview,
   getDatasetRows,
   getDatasets,
   getImportJob,
@@ -50,6 +51,16 @@ export function useDataset(id: string) {
   return useQuery({
     queryKey: ['dataset', organizationId, id],
     queryFn: () => getDataset(id),
+    enabled: useTenantQueryEnabled(id),
+  })
+}
+
+/** Fetch a dataset's ephemeral overview, keyed by the active organization. */
+export function useDatasetOverview(id: string) {
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: ['dataset-overview', organizationId, id],
+    queryFn: () => getDatasetOverview(id),
     enabled: useTenantQueryEnabled(id),
   })
 }

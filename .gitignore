@@ -37,6 +37,7 @@ venv/
 
 # --- Workflow ---
 PROJECT_STATE.md
+council-opinion-and-steps.md
 
 # Local preview server config (dev-only)
 .claude/launch.json

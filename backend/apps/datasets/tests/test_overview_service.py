@@ -103,17 +103,21 @@ def test_categorical_without_numbers_yields_count_bar():
 @pytest.mark.django_db
 def test_second_categorical_becomes_pie():
     dataset = DatasetFactory()
+    # Distinct `order` values (as the Excel importer assigns) make the
+    # bar-vs-pie pick deterministic: the first field becomes the bar.
     DatasetFieldFactory(
         dataset=dataset,
         key="region",
         label="Region",
         field_type=DatasetField.FieldType.TEXT,
+        order=0,
     )
     DatasetFieldFactory(
         dataset=dataset,
         key="channel",
         label="Channel",
         field_type=DatasetField.FieldType.SELECT,
+        order=1,
     )
     rows = [
         {"region": "North", "channel": "online"},

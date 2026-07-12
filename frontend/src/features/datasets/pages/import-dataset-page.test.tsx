@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
+import { Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
@@ -56,6 +57,20 @@ async function fillAndSubmit() {
   await userEvent.click(screen.getByRole('button', { name: /^import$/i }))
 }
 
+/** Render with Routes so navigation can be asserted. */
+function renderImportWithRoutes() {
+  return renderWithProviders(
+    <Routes>
+      <Route path="/datasets/import" element={<ImportDatasetPage />} />
+      <Route
+        path="/datasets/:datasetId"
+        element={<div data-testid="overview-page">Overview reached</div>}
+      />
+    </Routes>,
+    { route: '/datasets/import' },
+  )
+}
+
 describe('ImportDatasetPage', () => {
   beforeEach(() => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
@@ -99,14 +114,15 @@ describe('ImportDatasetPage', () => {
     expect(apiCalled).toBe(false)
   })
 
-  it('imports the spreadsheet and reports how many rows landed', async () => {
+  it('navigates to the dataset overview on successful import', async () => {
     stubCreateEndpoints(importJob({ status: 'done', rows_processed: 42 }))
-    renderWithProviders(<ImportDatasetPage />)
+    renderImportWithRoutes()
 
     await fillAndSubmit()
 
-    expect(await screen.findByText(/import complete/i)).toBeInTheDocument()
-    expect(screen.getByText(/42 rows imported/i)).toBeInTheDocument()
+    // After import completes, the app should navigate to /datasets/d1
+    expect(await screen.findByTestId('overview-page')).toBeInTheDocument()
+    expect(screen.getByText('Overview reached')).toBeInTheDocument()
   })
 
   it('surfaces the failure when the import errors', async () => {

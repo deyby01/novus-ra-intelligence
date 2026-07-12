@@ -3,10 +3,15 @@ import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
+import { useOnboardingStore } from '@/features/onboarding/store'
+import { runTour } from '@/features/onboarding/tour'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
 import type { Dataset } from '@/features/datasets/types'
 import { HomePage } from './home-page'
+
+vi.mock('@/features/onboarding/tour', () => ({ runTour: vi.fn() }))
+const mockRunTour = vi.mocked(runTour)
 
 function makeDataset(
   overrides: Partial<Dataset> & Pick<Dataset, 'id' | 'name'>,
@@ -30,6 +35,8 @@ describe('HomePage', () => {
   beforeEach(() => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
+    useOnboardingStore.getState().reset()
+    mockRunTour.mockClear()
   })
 
   it('renders the first-run empty state when there are no datasets', async () => {
@@ -154,5 +161,27 @@ describe('HomePage', () => {
     })
 
     globalThis.fetch = originalFetch
+  })
+
+  it('runs the home tour once when it has not been seen', async () => {
+    useOnboardingStore.setState({ hasSeenHomeTour: false })
+    server.use(http.get('*/datasets/', () => HttpResponse.json(page([]))))
+    renderWithProviders(<HomePage />)
+
+    await screen.findByText(/Welcome to Novus RA Intelligence/i)
+
+    await waitFor(() => expect(mockRunTour).toHaveBeenCalledWith('/'))
+  })
+
+  it('does not run the home tour once it has already been seen', async () => {
+    useOnboardingStore.setState({ hasSeenHomeTour: true })
+    server.use(http.get('*/datasets/', () => HttpResponse.json(page([]))))
+    renderWithProviders(<HomePage />)
+
+    await screen.findByText(/Welcome to Novus RA Intelligence/i)
+    // Give the 100ms tour timer time to fire (or, correctly, not fire).
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    expect(mockRunTour).not.toHaveBeenCalled()
   })
 })

@@ -36,6 +36,7 @@ export function runTour(path: string) {
       ],
       onDestroyStarted: () => {
         driverObj.destroy()
+        useOnboardingStore.getState().markHomeSeen()
       },
     })
     driverObj.drive()
@@ -76,7 +77,7 @@ export function runTour(path: string) {
       ],
       onDestroyStarted: () => {
         driverObj.destroy()
-        useOnboardingStore.getState().markSeen()
+        useOnboardingStore.getState().markOverviewSeen()
       },
     })
     driverObj.drive()

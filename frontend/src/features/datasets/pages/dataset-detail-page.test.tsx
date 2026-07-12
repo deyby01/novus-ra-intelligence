@@ -1,14 +1,18 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { Route, Routes } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
+import { runTour } from '@/features/onboarding/tour'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
 import type { DatasetField, DatasetRow, DatasetOverview } from '../types'
 import { DatasetDetailPage } from './dataset-detail-page'
+
+vi.mock('@/features/onboarding/tour', () => ({ runTour: vi.fn() }))
+const mockRunTour = vi.mocked(runTour)
 
 const DATASET = {
   id: 'd1',
@@ -134,7 +138,23 @@ describe('DatasetDetailPage', () => {
   beforeEach(() => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
-    useOnboardingStore.setState({ hasSeenTour: true })
+    useOnboardingStore.setState({ hasSeenOverviewTour: true })
+    mockRunTour.mockClear()
+  })
+
+  it('runs the overview tour once when it has not been seen', async () => {
+    useOnboardingStore.setState({ hasSeenOverviewTour: false })
+    stub({
+      fields: [field({ id: 'f1', key: 'region', label: 'Region' })],
+      rows: [row('r1', { region: 'North' })],
+    })
+    renderDetail()
+
+    await screen.findByText('Sales')
+
+    await waitFor(() =>
+      expect(mockRunTour).toHaveBeenCalledWith('/datasets/d1'),
+    )
   })
 
   // ── Overview tab (default) ─────────────────────────────────

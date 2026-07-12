@@ -14,7 +14,7 @@ import { runTour } from '@/features/onboarding/tour'
 export function HomePage() {
   const navigate = useNavigate()
   const { data: datasets, isPending, isError } = useDatasets()
-  const { hasSeenTour } = useOnboardingStore()
+  const { hasSeenHomeTour } = useOnboardingStore()
 
   const [sampleJobId, setSampleJobId] = useState<string | null>(null)
   const importExcel = useImportExcel()
@@ -24,14 +24,14 @@ export function HomePage() {
 
   // Run the home tour once when the page loads if they haven't seen it
   useEffect(() => {
-    if (!isPending && !hasSeenTour) {
+    if (!isPending && !hasSeenHomeTour) {
       // Small timeout ensures the DOM is fully painted
       const timer = setTimeout(() => {
         runTour('/')
       }, 100)
       return () => clearTimeout(timer)
     }
-  }, [hasSeenTour, isPending])
+  }, [hasSeenHomeTour, isPending])
 
   // Navigate to the sample dataset overview when import completes
   useEffect(() => {

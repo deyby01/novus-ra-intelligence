@@ -7,6 +7,7 @@ import { DashboardsPage } from '@/features/dashboards/pages/dashboards-page'
 import { DatasetDetailPage } from '@/features/datasets/pages/dataset-detail-page'
 import { DatasetsPage } from '@/features/datasets/pages/datasets-page'
 import { ImportDatasetPage } from '@/features/datasets/pages/import-dataset-page'
+import { HomePage } from '@/features/home/pages/home-page'
 import { RequireWorkspace } from '@/features/organizations/components/require-workspace'
 import { SelectWorkspacePage } from '@/features/organizations/pages/select-workspace-page'
 
@@ -19,7 +20,8 @@ function App() {
           <Route path="/select-workspace" element={<SelectWorkspacePage />} />
           <Route element={<RequireWorkspace />}>
             <Route element={<AppLayout />}>
-              <Route path="/" element={<DatasetsPage />} />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/datasets" element={<DatasetsPage />} />
               <Route path="/datasets/import" element={<ImportDatasetPage />} />
               <Route
                 path="/datasets/:datasetId"

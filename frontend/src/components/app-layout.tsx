@@ -6,7 +6,8 @@ import { WorkspaceIndicator } from '@/features/organizations/components/workspac
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/', label: 'Datasets', end: true },
+  { to: '/', label: 'Home', end: true },
+  { to: '/datasets', label: 'Datasets', end: false },
   { to: '/dashboards', label: 'Dashboards', end: false },
 ]
 

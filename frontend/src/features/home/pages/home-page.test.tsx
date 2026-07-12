@@ -83,7 +83,7 @@ describe('HomePage', () => {
   it('triggers the sample dataset import and navigates on completion', async () => {
     let datasetCreated = false
     let jobCreated = false
-    
+
     const originalFetch = globalThis.fetch
 
     server.use(
@@ -152,7 +152,7 @@ describe('HomePage', () => {
       expect(datasetCreated).toBe(true)
       expect(jobCreated).toBe(true)
     })
-    
+
     globalThis.fetch = originalFetch
   })
 })

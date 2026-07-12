@@ -1,13 +1,17 @@
-import { ArrowLeft, Plus, Table2 } from 'lucide-react'
+import { ArrowLeft, BarChart3, Plus, Table2 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DatasetTable } from '../components/dataset-table'
+import { OverviewWidgetCard } from '../components/overview-widget-card'
 import { RowEditor } from '../components/row-editor'
 import { AiReportPanel } from '@/features/reports/components/ai-report-panel'
+import { sizeToColSpan } from '@/features/dashboards/utils'
 import {
   useDataset,
   useDatasetFields,
+  useDatasetOverview,
   useDatasetRows,
   useRowMutations,
 } from '../hooks'
@@ -21,6 +25,7 @@ export function DatasetDetailPage() {
   const fields = useDatasetFields(datasetId)
   const rows = useDatasetRows(datasetId)
   const { create, update, remove } = useRowMutations(datasetId)
+  const overview = useDatasetOverview(datasetId)
 
   const [editing, setEditing] = useState<Editing>(null)
 
@@ -49,6 +54,12 @@ export function DatasetDetailPage() {
   const isSaving =
     editing?.mode === 'edit' ? update.isPending : create.isPending
   const saveError = editing?.mode === 'edit' ? update.isError : create.isError
+
+  // Split overview widgets into KPIs (top row) and charts (grid).
+  const kpiWidgets =
+    overview.data?.widgets.filter((w) => w.chart_type === 'kpi') ?? []
+  const chartWidgets =
+    overview.data?.widgets.filter((w) => w.chart_type !== 'kpi') ?? []
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -86,82 +97,152 @@ export function DatasetDetailPage() {
                   ` · ${fields.data.length} ${fields.data.length === 1 ? 'column' : 'columns'}`}
               </p>
             </div>
-            {fields.data.length > 0 && (
-              <Button
-                onClick={() => setEditing({ mode: 'create' })}
-                disabled={Boolean(editing)}
-              >
-                <Plus />
-                Add row
-              </Button>
-            )}
           </header>
 
-          {fields.data.length === 0 ? (
-            <EmptyState detail="This dataset has no columns yet. Import a spreadsheet to give it structure." />
-          ) : (
-            <>
-              {editing && (
-                <RowEditor
-                  key={editing.mode === 'edit' ? editing.row.id : 'create'}
-                  fields={fields.data}
-                  title={editing.mode === 'create' ? 'Add row' : 'Edit row'}
-                  initialData={
-                    editing.mode === 'edit' ? editing.row.data : undefined
-                  }
-                  isSaving={isSaving}
-                  error={saveError}
-                  onSubmit={handleSubmit}
-                  onCancel={closeEditor}
-                />
+          <Tabs defaultValue="overview">
+            <TabsList>
+              <TabsTrigger value="overview">
+                <BarChart3 className="mr-1.5 size-4" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="data" data-tour="data-tab">
+                <Table2 className="mr-1.5 size-4" />
+                Data
+              </TabsTrigger>
+            </TabsList>
+
+            {/* ── Overview tab ────────────────────────────────── */}
+            <TabsContent value="overview" className="mt-6 space-y-6">
+              {overview.isPending && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-6 gap-4">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="bg-muted col-span-6 h-24 animate-pulse rounded-xl sm:col-span-3 lg:col-span-2"
+                      />
+                    ))}
+                  </div>
+                  <div className="bg-muted h-40 animate-pulse rounded-xl" />
+                </div>
               )}
 
-              {rows.data.count === 0 ? (
-                !editing && (
-                  <EmptyState detail="This dataset has columns but no rows yet.">
-                    <Button
-                      className="mt-2"
-                      onClick={() => setEditing({ mode: 'create' })}
-                    >
-                      <Plus />
-                      Add the first row
-                    </Button>
-                  </EmptyState>
-                )
-              ) : (
+              {overview.isError && (
+                <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
+                  We couldn&apos;t build an overview for this dataset.
+                </p>
+              )}
+
+              {overview.data && overview.data.widgets.length === 0 && (
+                <OverviewEmptyState />
+              )}
+
+              {overview.data && overview.data.widgets.length > 0 && (
                 <>
-                  <DatasetTable
-                    fields={fields.data}
-                    rows={rows.data.results}
-                    onEdit={(row) => setEditing({ mode: 'edit', row })}
-                    onDelete={(row) => remove.mutate(row.id)}
-                    deletingId={
-                      remove.isPending ? (remove.variables ?? null) : null
-                    }
-                  />
-                  {remove.isError && (
-                    <p className="text-destructive mt-3 text-sm">
-                      We couldn&apos;t delete the row. Please try again.
-                    </p>
+                  {/* KPI row */}
+                  {kpiWidgets.length > 0 && (
+                    <div className="grid grid-cols-6 gap-4" data-tour="kpis">
+                      {kpiWidgets.map((w, i) => (
+                        <div key={i} className={sizeToColSpan(w.config.size)}>
+                          <OverviewWidgetCard widget={w} />
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {rows.data.count > rows.data.results.length && (
-                    <p className="text-muted-foreground mt-3 text-center text-xs">
-                      Showing the first {rows.data.results.length} of{' '}
-                      {rows.data.count} rows.
-                    </p>
+
+                  {/* AI report panel — promoted above the fold */}
+                  <div data-tour="ai-insights">
+                    <AiReportPanel
+                      datasetId={datasetId}
+                      datasetName={dataset.data.name}
+                    />
+                  </div>
+
+                  {/* Auto chart grid */}
+                  {chartWidgets.length > 0 && (
+                    <div className="grid grid-cols-6 gap-6">
+                      {chartWidgets.map((w, i) => (
+                        <div key={i} className={sizeToColSpan(w.config.size)}>
+                          <OverviewWidgetCard widget={w} />
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </>
               )}
-            </>
-          )}
+            </TabsContent>
 
-          {/* AI Report Section */}
-          <div className="mt-12 border-t border-border pt-8">
-            <AiReportPanel
-              datasetId={datasetId}
-              datasetName={dataset.data.name}
-            />
-          </div>
+            {/* ── Data tab ────────────────────────────────────── */}
+            <TabsContent value="data" className="mt-6">
+              {fields.data.length === 0 ? (
+                <EmptyState detail="This dataset has no columns yet. Import a spreadsheet to give it structure." />
+              ) : (
+                <>
+                  <div className="mb-4 flex justify-end">
+                    <Button
+                      onClick={() => setEditing({ mode: 'create' })}
+                      disabled={Boolean(editing)}
+                    >
+                      <Plus />
+                      Add row
+                    </Button>
+                  </div>
+
+                  {editing && (
+                    <RowEditor
+                      key={editing.mode === 'edit' ? editing.row.id : 'create'}
+                      fields={fields.data}
+                      title={editing.mode === 'create' ? 'Add row' : 'Edit row'}
+                      initialData={
+                        editing.mode === 'edit' ? editing.row.data : undefined
+                      }
+                      isSaving={isSaving}
+                      error={saveError}
+                      onSubmit={handleSubmit}
+                      onCancel={closeEditor}
+                    />
+                  )}
+
+                  {rows.data.count === 0 ? (
+                    !editing && (
+                      <EmptyState detail="This dataset has columns but no rows yet.">
+                        <Button
+                          className="mt-2"
+                          onClick={() => setEditing({ mode: 'create' })}
+                        >
+                          <Plus />
+                          Add the first row
+                        </Button>
+                      </EmptyState>
+                    )
+                  ) : (
+                    <>
+                      <DatasetTable
+                        fields={fields.data}
+                        rows={rows.data.results}
+                        onEdit={(row) => setEditing({ mode: 'edit', row })}
+                        onDelete={(row) => remove.mutate(row.id)}
+                        deletingId={
+                          remove.isPending ? (remove.variables ?? null) : null
+                        }
+                      />
+                      {remove.isError && (
+                        <p className="text-destructive mt-3 text-sm">
+                          We couldn&apos;t delete the row. Please try again.
+                        </p>
+                      )}
+                      {rows.data.count > rows.data.results.length && (
+                        <p className="text-muted-foreground mt-3 text-center text-xs">
+                          Showing the first {rows.data.results.length} of{' '}
+                          {rows.data.count} rows.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </div>
@@ -182,6 +263,19 @@ function EmptyState({
       </div>
       <p className="text-muted-foreground max-w-sm text-sm">{detail}</p>
       {children}
+    </div>
+  )
+}
+
+function OverviewEmptyState() {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
+      <div className="bg-muted grid size-12 place-items-center rounded-xl border">
+        <BarChart3 className="text-muted-foreground size-6" />
+      </div>
+      <p className="text-muted-foreground max-w-sm text-sm">
+        Not enough data yet to summarize — add rows or import a spreadsheet.
+      </p>
     </div>
   )
 }

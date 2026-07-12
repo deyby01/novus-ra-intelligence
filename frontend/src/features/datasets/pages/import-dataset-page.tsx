@@ -10,9 +10,10 @@ import {
   type ChangeEvent,
   type FormEvent,
   type ReactNode,
+  useEffect,
   useState,
 } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,6 +30,7 @@ function baseName(fileName: string): string {
 }
 
 export function ImportDatasetPage() {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -36,6 +38,13 @@ export function ImportDatasetPage() {
 
   const importExcel = useImportExcel()
   const { data: job } = useImportJob(jobId)
+
+  // Auto-navigate to the dataset overview once the import completes.
+  useEffect(() => {
+    if (job?.status === 'done') {
+      navigate(`/datasets/${job.dataset}`, { replace: true })
+    }
+  }, [job?.status, job?.dataset, navigate])
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0] ?? null
@@ -86,12 +95,8 @@ export function ImportDatasetPage() {
         <ResultCard
           icon={<CheckCircle2 className="size-6 text-emerald-600" />}
           title="Import complete"
-          detail={`${job.rows_processed} ${job.rows_processed === 1 ? 'row' : 'rows'} imported into “${name}”.`}
-        >
-          <Button asChild>
-            <Link to="/">View datasets</Link>
-          </Button>
-        </ResultCard>
+          detail={`${job.rows_processed} ${job.rows_processed === 1 ? 'row' : 'rows'} imported into "${name}". Redirecting…`}
+        />
       ) : job?.status === 'error' ? (
         <ResultCard
           icon={<AlertCircle className="text-destructive size-6" />}

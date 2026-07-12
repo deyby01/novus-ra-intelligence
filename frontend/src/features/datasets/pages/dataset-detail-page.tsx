@@ -29,13 +29,13 @@ export function DatasetDetailPage() {
   const { create, update, remove } = useRowMutations(datasetId)
   const overview = useDatasetOverview(datasetId)
 
-  const { hasSeenTour } = useOnboardingStore()
+  const { hasSeenOverviewTour } = useOnboardingStore()
 
   const [editing, setEditing] = useState<Editing>(null)
 
   useEffect(() => {
     if (
-      !hasSeenTour &&
+      !hasSeenOverviewTour &&
       !overview.isPending &&
       !overview.isError &&
       overview.data
@@ -46,7 +46,7 @@ export function DatasetDetailPage() {
       return () => clearTimeout(timer)
     }
   }, [
-    hasSeenTour,
+    hasSeenOverviewTour,
     overview.isPending,
     overview.isError,
     overview.data,

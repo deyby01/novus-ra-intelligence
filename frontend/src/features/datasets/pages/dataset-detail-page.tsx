@@ -1,5 +1,5 @@
 import { ArrowLeft, BarChart3, Plus, Table2 } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -8,6 +8,8 @@ import { OverviewWidgetCard } from '../components/overview-widget-card'
 import { RowEditor } from '../components/row-editor'
 import { AiReportPanel } from '@/features/reports/components/ai-report-panel'
 import { sizeToColSpan } from '@/features/dashboards/utils'
+import { useOnboardingStore } from '@/features/onboarding/store'
+import { runTour } from '@/features/onboarding/tour'
 import {
   useDataset,
   useDatasetFields,
@@ -27,7 +29,29 @@ export function DatasetDetailPage() {
   const { create, update, remove } = useRowMutations(datasetId)
   const overview = useDatasetOverview(datasetId)
 
+  const { hasSeenTour } = useOnboardingStore()
+
   const [editing, setEditing] = useState<Editing>(null)
+
+  useEffect(() => {
+    if (
+      !hasSeenTour &&
+      !overview.isPending &&
+      !overview.isError &&
+      overview.data
+    ) {
+      const timer = setTimeout(() => {
+        runTour(`/datasets/${datasetId}`)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [
+    hasSeenTour,
+    overview.isPending,
+    overview.isError,
+    overview.data,
+    datasetId,
+  ])
 
   const isPending = dataset.isPending || fields.isPending || rows.isPending
   const isError = dataset.isError || fields.isError || rows.isError

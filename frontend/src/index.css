@@ -130,3 +130,33 @@
     @apply font-sans;
   }
 }
+
+/* ── driver.js Theme Overrides ── */
+.driver-popover {
+  @apply bg-popover text-popover-foreground rounded-xl border shadow-md;
+}
+.driver-popover-title {
+  @apply text-lg font-semibold tracking-tight;
+}
+.driver-popover-description {
+  @apply text-muted-foreground text-sm;
+}
+.driver-popover-footer {
+  @apply mt-4;
+}
+.driver-popover-progress-text {
+  @apply text-muted-foreground text-xs font-medium;
+}
+.driver-popover-navigation-btns {
+  @apply gap-2;
+}
+.driver-popover-prev-btn,
+.driver-popover-next-btn {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 text-sm font-medium shadow transition-colors;
+}
+.driver-popover-prev-btn {
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm;
+}
+.driver-popover-close-btn {
+  @apply text-muted-foreground hover:bg-muted hover:text-foreground absolute right-2 top-2 rounded-md p-1 opacity-70 transition-opacity;
+}

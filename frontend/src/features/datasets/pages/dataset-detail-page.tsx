@@ -64,7 +64,7 @@ export function DatasetDetailPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <Link
-        to="/"
+        to="/datasets"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm transition-colors"
       >
         <ArrowLeft className="size-4" />

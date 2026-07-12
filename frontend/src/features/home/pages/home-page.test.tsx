@@ -134,7 +134,7 @@ describe('HomePage', () => {
           }),
         ),
     })
-    globalThis.fetch = mockFetch as any
+    globalThis.fetch = mockFetch as unknown as typeof fetch
 
     renderWithProviders(<HomePage />)
 

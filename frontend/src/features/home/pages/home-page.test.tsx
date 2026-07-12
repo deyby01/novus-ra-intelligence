@@ -1,6 +1,6 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
 import { server } from '@/test/server'
@@ -78,5 +78,81 @@ describe('HomePage', () => {
     expect(await screen.findByText('Dataset 0')).toBeInTheDocument()
     expect(screen.getByText('Dataset 5')).toBeInTheDocument()
     expect(screen.queryByText('Dataset 6')).not.toBeInTheDocument()
+  })
+
+  it('triggers the sample dataset import and navigates on completion', async () => {
+    let datasetCreated = false
+    let jobCreated = false
+
+    const originalFetch = globalThis.fetch
+
+    server.use(
+      http.get('*/datasets/', () => HttpResponse.json(page([]))),
+      http.post('*/datasets/', () => {
+        datasetCreated = true
+        return HttpResponse.json({
+          id: 'd-sample',
+          name: 'Sample dataset',
+          source: 'excel',
+          created_by: null,
+          updated_by: null,
+          created_at: '',
+          updated_at: '',
+        })
+      }),
+      http.post('*/import-jobs/', () => {
+        jobCreated = true
+        return HttpResponse.json({
+          id: 'j1',
+          status: 'pending',
+          dataset: 'd-sample',
+          rows_processed: 0,
+          errors: {},
+          created_at: '',
+          updated_at: '',
+        })
+      }),
+      http.get('*/import-jobs/j1/', () => {
+        return HttpResponse.json({
+          id: 'j1',
+          status: 'done',
+          dataset: 'd-sample',
+          rows_processed: 10,
+          errors: {},
+          created_at: '',
+          updated_at: '',
+        })
+      }),
+    )
+
+    // Polyfill fetch for the sample file
+    const mockFetch = vi.fn().mockResolvedValue({
+      blob: () =>
+        Promise.resolve(
+          new Blob(['dummy'], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          }),
+        ),
+    })
+    globalThis.fetch = mockFetch as unknown as typeof fetch
+
+    renderWithProviders(<HomePage />)
+
+    expect(
+      await screen.findByText(/Welcome to Novus RA Intelligence/i),
+    ).toBeInTheDocument()
+
+    // Use click from testing-library/react instead of userEvent as we are in a simple test
+    const trySampleButton = screen.getByRole('button', {
+      name: /try a sample dataset/i,
+    })
+    trySampleButton.click()
+
+    await waitFor(() => {
+      expect(datasetCreated).toBe(true)
+      expect(jobCreated).toBe(true)
+    })
+
+    globalThis.fetch = originalFetch
   })
 })

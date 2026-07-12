@@ -128,10 +128,13 @@ function renderDetail() {
   )
 }
 
+import { useOnboardingStore } from '@/features/onboarding/store'
+
 describe('DatasetDetailPage', () => {
   beforeEach(() => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
+    useOnboardingStore.setState({ hasSeenTour: true })
   })
 
   // ── Overview tab (default) ─────────────────────────────────

@@ -1,13 +1,62 @@
-import { FileSpreadsheet, Upload } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { FileSpreadsheet, Loader2, PlayCircle, Upload } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { DatasetCard } from '@/features/datasets/components/dataset-card'
-import { useDatasets } from '@/features/datasets/hooks'
+import {
+  useDatasets,
+  useImportExcel,
+  useImportJob,
+} from '@/features/datasets/hooks'
+import { useOnboardingStore } from '@/features/onboarding/store'
+import { runTour } from '@/features/onboarding/tour'
 
 export function HomePage() {
+  const navigate = useNavigate()
   const { data: datasets, isPending, isError } = useDatasets()
+  const { hasSeenTour } = useOnboardingStore()
+
+  const [sampleJobId, setSampleJobId] = useState<string | null>(null)
+  const importExcel = useImportExcel()
+  const { data: job } = useImportJob(sampleJobId)
 
   const recentDatasets = datasets?.slice(0, 6) ?? []
+
+  // Run the home tour once when the page loads if they haven't seen it
+  useEffect(() => {
+    if (!isPending && !hasSeenTour) {
+      // Small timeout ensures the DOM is fully painted
+      const timer = setTimeout(() => {
+        runTour('/')
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [hasSeenTour, isPending])
+
+  // Navigate to the sample dataset overview when import completes
+  useEffect(() => {
+    if (job?.status === 'done') {
+      navigate(`/datasets/${job.dataset}`)
+    }
+  }, [job?.status, job?.dataset, navigate])
+
+  const onTrySample = async () => {
+    try {
+      const res = await fetch('/sample-sales.xlsx')
+      const blob = await res.blob()
+      const file = new File([blob], 'sample-sales.xlsx', { type: blob.type })
+      importExcel.mutate(
+        { name: 'Sample dataset', file },
+        { onSuccess: (created) => setSampleJobId(created.id) },
+      )
+    } catch (err) {
+      console.error('Failed to load sample dataset', err)
+    }
+  }
+
+  const isImportingSample =
+    importExcel.isPending ||
+    (job && job.status !== 'error' && job.status !== 'done')
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -31,10 +80,29 @@ export function HomePage() {
             </Link>
           </Button>
 
-          {/* Slot for Slice 5 sample dataset button */}
-          <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
             <p className="text-muted-foreground text-xs">More ways to start:</p>
-            {/* TODO: Try a sample dataset button goes here */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onTrySample}
+              disabled={isImportingSample}
+              data-tour="sample"
+            >
+              {isImportingSample ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-2 size-4" />
+              )}
+              {isImportingSample
+                ? 'Importing sample...'
+                : 'Try a sample dataset'}
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/sample-sales.xlsx" download>
+                Download template
+              </a>
+            </Button>
           </div>
         </div>
       )}
@@ -67,12 +135,23 @@ export function HomePage() {
                 Pick up where you left off or bring in new data.
               </p>
             </div>
-            <Button asChild data-tour="import">
-              <Link to="/datasets/import">
-                <Upload className="mr-2 size-4" />
-                Import spreadsheet
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => runTour('/')}
+                className="hidden sm:flex"
+              >
+                <PlayCircle className="mr-2 size-4" />
+                Replay tour
+              </Button>
+              <Button asChild data-tour="import">
+                <Link to="/datasets/import">
+                  <Upload className="mr-2 size-4" />
+                  Import spreadsheet
+                </Link>
+              </Button>
+            </div>
           </header>
 
           <section>
@@ -86,8 +165,23 @@ export function HomePage() {
             </div>
           </section>
 
-          {/* Slot for Slice 5 sample dataset section when there are existing datasets */}
-          {/* TODO: Add try sample affordance here if desired */}
+          <div className="mt-6 flex items-center justify-center gap-3 rounded-xl border border-dashed py-8">
+            <p className="text-muted-foreground text-sm">Need a quick demo?</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onTrySample}
+              disabled={isImportingSample}
+              data-tour="sample"
+            >
+              {isImportingSample ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-2 size-4" />
+              )}
+              {isImportingSample ? 'Importing...' : 'Try a sample dataset'}
+            </Button>
+          </div>
         </>
       )}
     </div>

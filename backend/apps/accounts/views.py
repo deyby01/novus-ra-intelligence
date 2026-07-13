@@ -10,7 +10,14 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializers import LogoutSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    LogoutSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
+from .services.password_reset import send_password_reset_email
 
 
 class RegisterView(APIView):
@@ -43,6 +50,42 @@ class RegisterView(APIView):
                 "refresh": str(refresh),
             },
             status=status.HTTP_201_CREATED,
+        )
+
+
+class PasswordResetRequestView(APIView):
+    """Email a reset link for an account. Always 200, never reveals existence."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
+
+    def post(self, request: Request) -> Response:
+        """Send a reset link if the email belongs to an active account."""
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        send_password_reset_email(serializer.validated_data["email"])
+        return Response(
+            {"detail": "If that email is registered, a reset link is on its way."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """Set a new password given a valid reset token."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
+
+    def post(self, request: Request) -> Response:
+        """Validate the token and store the new password."""
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"detail": "Your password has been reset. You can now sign in."},
+            status=status.HTTP_200_OK,
         )
 
 

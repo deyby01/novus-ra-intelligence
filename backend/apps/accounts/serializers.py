@@ -4,11 +4,14 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils.text import slugify
 from rest_framework import serializers
 
 from apps.organizations.models import Membership, Organization
+
+from .services.password_reset import get_user_from_reset_token
 
 User = get_user_model()
 
@@ -81,3 +84,38 @@ class RegisterSerializer(serializers.Serializer):
                 is_active=True,
             )
         return {"user": user, "organization": organization}
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """Validate the email a reset link is requested for (existence not checked)."""
+
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """Validate a reset token and the new password, then set it."""
+
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+    def validate(self, attrs: dict) -> dict:
+        """Check the token before the password so a bad link fails fast."""
+        user = get_user_from_reset_token(attrs["uid"], attrs["token"])
+        if user is None:
+            raise serializers.ValidationError(
+                {"token": "The reset link is invalid or has expired."}
+            )
+        try:
+            validate_password(attrs["new_password"], user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)}) from exc
+        attrs["user"] = user
+        return attrs
+
+    def save(self) -> User:
+        """Persist the new password, invalidating every outstanding reset token."""
+        user = self.validated_data["user"]
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return user

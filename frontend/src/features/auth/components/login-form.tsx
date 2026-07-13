@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,6 +75,15 @@ export function LoginForm() {
         {errors.password && (
           <p className="text-sm text-destructive">{errors.password.message}</p>
         )}
+      </div>
+
+      <div className="text-right">
+        <Link
+          to="/forgot-password"
+          className="text-muted-foreground text-sm underline-offset-4 hover:underline"
+        >
+          Forgot your password?
+        </Link>
       </div>
 
       {errors.root && (

@@ -1,7 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/app-layout'
 import { ProtectedRoute } from '@/features/auth/components/protected-route'
+import { ForgotPasswordPage } from '@/features/auth/pages/forgot-password-page'
 import { LoginPage } from '@/features/auth/pages/login-page'
+import { ResetPasswordPage } from '@/features/auth/pages/reset-password-page'
 import { SignupPage } from '@/features/auth/pages/signup-page'
 import { DashboardDetailPage } from '@/features/dashboards/pages/dashboard-detail-page'
 import { DashboardsPage } from '@/features/dashboards/pages/dashboards-page'
@@ -18,6 +20,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/select-workspace" element={<SelectWorkspacePage />} />
           <Route element={<RequireWorkspace />}>

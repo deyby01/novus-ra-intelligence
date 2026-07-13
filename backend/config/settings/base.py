@@ -116,6 +116,7 @@ REST_FRAMEWORK = {
         "login": "10/min",
         "refresh": "30/min",
         "register": "20/hour",
+        "password_reset": "5/hour",
         "reports_generate": "30/hour",
         "reports_pdf": "120/hour",
     },
@@ -169,5 +170,30 @@ CACHES = {
 
 # --- AI provider (Google Gemini, Phase 2) ---
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+
+# --- Email (password reset, ADR-0019) ---
+# Defaults to the console backend so dev needs no secrets — reset links are
+# printed to the backend logs. Production sets EMAIL_BACKEND to SMTP via the
+# environment (see .env.example) and fills in the host/credentials below.
+EMAIL_BACKEND = env(
+    "DJANGO_EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = env("DJANGO_EMAIL_HOST", default="")
+EMAIL_PORT = env.int("DJANGO_EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("DJANGO_EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("DJANGO_EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("DJANGO_EMAIL_USE_TLS", default=True)
+DEFAULT_FROM_EMAIL = env(
+    "DJANGO_DEFAULT_FROM_EMAIL",
+    default="Novus RA Intelligence <no-reply@novus.local>",
+)
+
+# Public base URL of the SPA; password-reset emails link back here so the
+# frontend can drive the confirm step. No trailing slash.
+FRONTEND_BASE_URL = env("DJANGO_FRONTEND_BASE_URL", default="http://localhost:5173")
+
+# How long a password-reset link stays valid (seconds). One hour by default.
+PASSWORD_RESET_TIMEOUT = env.int("DJANGO_PASSWORD_RESET_TIMEOUT", default=3600)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

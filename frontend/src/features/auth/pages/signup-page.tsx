@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Wordmark } from '@/components/brand'
-import { LoginForm } from '../components/login-form'
+import { SignupForm } from '../components/signup-form'
 
 const gridMotif = {
   backgroundImage:
@@ -15,7 +15,7 @@ const gridMotif = {
   backgroundSize: '34px 34px',
 }
 
-export function LoginPage() {
+export function SignupPage() {
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
       <aside className="bg-foreground text-background relative hidden flex-col justify-between overflow-hidden p-12 lg:flex">
@@ -27,11 +27,11 @@ export function LoginPage() {
         <Wordmark tone="dark" className="relative" />
         <div className="relative max-w-md">
           <h1 className="text-3xl font-semibold tracking-tight text-balance">
-            Turn spreadsheets into decisions.
+            Your first dashboard is minutes away.
           </h1>
           <p className="text-background/60 mt-3 text-base">
-            Import your data and watch it become dashboards and AI-written
-            reports.
+            Create a workspace, import a spreadsheet, and get instant KPIs,
+            charts, and AI-written reports.
           </p>
         </div>
         <p className="text-background/40 relative text-xs">
@@ -46,20 +46,22 @@ export function LoginPage() {
           </div>
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Sign in</CardTitle>
-              <CardDescription>Access your workspace.</CardDescription>
+              <CardTitle className="text-xl">Create your workspace</CardTitle>
+              <CardDescription>
+                Start turning your spreadsheets into decisions.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <LoginForm />
+              <SignupForm />
             </CardContent>
           </Card>
           <p className="text-muted-foreground mt-6 text-center text-sm">
-            New here?{' '}
+            Already have an account?{' '}
             <Link
-              to="/register"
+              to="/login"
               className="text-foreground font-medium underline-offset-4 hover:underline"
             >
-              Create an account
+              Sign in
             </Link>
           </p>
         </div>

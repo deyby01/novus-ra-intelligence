@@ -6,10 +6,13 @@ from io import BytesIO
 import pandas as pd
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from openpyxl import Workbook
 
 from apps.datasets.models import DatasetField, DatasetRow, ImportJob
-from apps.datasets.services.import_service import import_workbook
+from apps.datasets.services.import_service import WorkbookImportError, import_workbook
 from apps.datasets.tests.factories import DatasetFactory
+
+_XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def _workbook_bytes(frame: pd.DataFrame) -> bytes:
@@ -19,18 +22,30 @@ def _workbook_bytes(frame: pd.DataFrame) -> bytes:
     return buffer.getvalue()
 
 
-def _import_job_for(dataset, frame: pd.DataFrame) -> ImportJob:
-    """Attach a workbook built from ``frame`` to a fresh import job."""
-    upload = SimpleUploadedFile(
-        "import.xlsx",
-        _workbook_bytes(frame),
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+def _raw_workbook_bytes(rows: list[list[object]]) -> bytes:
+    """Build ``.xlsx`` bytes from raw cell rows (for headerless/empty layouts)."""
+    workbook = Workbook()
+    sheet = workbook.active
+    for row in rows:
+        sheet.append(row)
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
+def _job_from_bytes(dataset, content: bytes) -> ImportJob:
+    """Attach arbitrary uploaded bytes to a fresh import job."""
+    upload = SimpleUploadedFile("import.xlsx", content, content_type=_XLSX_CONTENT_TYPE)
     return ImportJob.objects.create(
         dataset=dataset,
         organization=dataset.organization,
         file=upload,
     )
+
+
+def _import_job_for(dataset, frame: pd.DataFrame) -> ImportJob:
+    """Attach a workbook built from ``frame`` to a fresh import job."""
+    return _job_from_bytes(dataset, _workbook_bytes(frame))
 
 
 @pytest.fixture
@@ -192,3 +207,73 @@ def test_date_only_values_serialize_as_iso_strings():
 
     row = dataset.rows.get()
     assert row.data["day"] == "2026-07-07T00:00:00"
+
+
+@pytest.mark.django_db
+def test_fully_blank_rows_are_skipped():
+    dataset = DatasetFactory()
+    frame = pd.DataFrame({"Region": ["North", None, "South"], "Units": [10, None, 20]})
+    job = _import_job_for(dataset, frame)
+
+    created = import_workbook(job)
+
+    assert created == 2
+    assert {row.data["region"] for row in dataset.rows.all()} == {"North", "South"}
+
+
+@pytest.mark.django_db
+def test_unnamed_empty_columns_are_dropped():
+    dataset = DatasetFactory()
+    job = _job_from_bytes(
+        dataset,
+        _raw_workbook_bytes(
+            [
+                ["Region", None, "Units"],
+                ["North", None, 10],
+                ["South", None, 20],
+            ]
+        ),
+    )
+
+    import_workbook(job)
+
+    assert set(dataset.fields.values_list("key", flat=True)) == {"region", "units"}
+
+
+@pytest.mark.django_db
+def test_unreadable_file_raises_a_friendly_error():
+    dataset = DatasetFactory()
+    job = _job_from_bytes(dataset, b"this is not an excel workbook")
+
+    with pytest.raises(WorkbookImportError) as exc_info:
+        import_workbook(job)
+
+    assert "Excel" in str(exc_info.value)
+    assert dataset.fields.count() == 0
+    assert dataset.rows.count() == 0
+
+
+@pytest.mark.django_db
+def test_empty_sheet_raises_a_friendly_error():
+    dataset = DatasetFactory()
+    job = _job_from_bytes(dataset, _raw_workbook_bytes([]))
+
+    with pytest.raises(WorkbookImportError) as exc_info:
+        import_workbook(job)
+
+    assert "column" in str(exc_info.value).lower()
+    assert dataset.rows.count() == 0
+
+
+@pytest.mark.django_db
+def test_process_import_job_records_the_friendly_message():
+    from apps.datasets.tasks import process_import_job
+
+    dataset = DatasetFactory()
+    job = _job_from_bytes(dataset, b"definitely not a workbook")
+
+    process_import_job(str(job.pk))
+
+    job.refresh_from_db()
+    assert job.status == ImportJob.Status.ERROR
+    assert "Excel" in job.errors["detail"]

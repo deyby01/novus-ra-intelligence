@@ -17,13 +17,23 @@ from apps.datasets.models import DatasetField, DatasetRow, ImportJob
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
 
+class WorkbookImportError(Exception):
+    """A user-facing import failure carrying an actionable, plain-language message.
+
+    The Celery task surfaces ``str(exc)`` to the import job, so the message is
+    shown to the user verbatim — keep it human, not technical.
+    """
+
+
 def import_workbook(import_job: ImportJob) -> int:
     """Parse the job's Excel file into its dataset and return rows created.
 
-    Reads the first sheet only (the first row is the header), infers a field
-    type per column, upserts the dataset's fields, and appends one row per data
-    line as a JSON document. The field upsert and row load run in a single
-    transaction so a mid-file failure leaves no half-written dataset.
+    Reads the first sheet only (the first row is the header), trims blank noise,
+    infers a field type per column, upserts the dataset's fields, and appends one
+    row per data line as a JSON document. The field upsert and row load run in a
+    single transaction so a mid-file failure leaves no half-written dataset.
+    Unreadable files and sheets with no detectable columns raise
+    :class:`WorkbookImportError` with a message the user can act on.
 
     Args:
         import_job: The job whose ``file`` is parsed into its ``dataset``.
@@ -34,10 +44,13 @@ def import_workbook(import_job: ImportJob) -> int:
     dataset = import_job.dataset
     organization = dataset.organization
 
-    with import_job.file.open("rb") as handle:
-        frame = pd.read_excel(handle, sheet_name=0, engine="openpyxl")
-
+    frame = _trim_blank(_read_first_sheet(import_job))
     columns = _resolve_columns(frame)
+    if not columns:
+        raise WorkbookImportError(
+            "We couldn't find any columns in the first sheet. "
+            "Make sure the first row contains column headers."
+        )
 
     with transaction.atomic():
         for order, column in enumerate(columns):
@@ -62,6 +75,38 @@ def import_workbook(import_job: ImportJob) -> int:
         DatasetRow.objects.bulk_create(rows)
 
     return len(rows)
+
+
+def _read_first_sheet(import_job: ImportJob) -> pd.DataFrame:
+    """Read the workbook's first sheet, raising a user-facing error on failure."""
+    try:
+        with import_job.file.open("rb") as handle:
+            return pd.read_excel(handle, sheet_name=0, engine="openpyxl")
+    except Exception as exc:  # noqa: BLE001 — any parse failure becomes a friendly error.
+        raise WorkbookImportError(
+            "We couldn't read this file as an Excel workbook. "
+            "Make sure it's a valid .xlsx or .xls file and try again."
+        ) from exc
+
+
+def _trim_blank(frame: pd.DataFrame) -> pd.DataFrame:
+    """Drop noise before inference: fully-blank rows and phantom empty columns.
+
+    Fully-blank rows (every cell empty) are spacer/junk lines that would become
+    empty dataset rows. Columns that are both unnamed and entirely empty are the
+    ``Unnamed: N`` placeholders pandas invents for trailing empty cells; a named
+    column is kept even when empty, so an intentionally-blank column and a
+    header-only sheet both survive.
+    """
+    frame = frame.dropna(how="all")
+    blank_unnamed = [
+        column
+        for column in frame.columns
+        if not _header_label(column) and frame[column].dropna().empty
+    ]
+    if blank_unnamed:
+        frame = frame.drop(columns=blank_unnamed)
+    return frame
 
 
 def _resolve_columns(frame: pd.DataFrame) -> list[dict[str, object]]:

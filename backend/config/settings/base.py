@@ -115,6 +115,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "login": "10/min",
         "refresh": "30/min",
+        "register": "20/hour",
         "reports_generate": "30/hour",
         "reports_pdf": "120/hour",
     },

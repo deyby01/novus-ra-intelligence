@@ -1,6 +1,13 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { clearSession } from '@/lib/session'
-import { getMe, login, logout, register } from './api'
+import {
+  confirmPasswordReset,
+  getMe,
+  login,
+  logout,
+  register,
+  requestPasswordReset,
+} from './api'
 import { useAuthStore } from './store'
 
 export function useLogin() {
@@ -39,4 +46,14 @@ export function useLogout() {
     },
     onSettled: () => clearSession(),
   })
+}
+
+/** Request a password-reset email. No side effects — the form handles the UI. */
+export function useRequestPasswordReset() {
+  return useMutation({ mutationFn: requestPasswordReset })
+}
+
+/** Confirm password reset with uid/token/newPassword. No side effects. */
+export function useConfirmPasswordReset() {
+  return useMutation({ mutationFn: confirmPasswordReset })
 }

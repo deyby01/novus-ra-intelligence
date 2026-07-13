@@ -29,3 +29,13 @@ export interface RegisterResponse {
   access: string
   refresh: string
 }
+
+export interface PasswordResetRequestInput {
+  email: string
+}
+
+export interface PasswordResetConfirmInput {
+  uid: string
+  token: string
+  newPassword: string
+}

@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api-client'
 import type {
   LoginInput,
+  PasswordResetConfirmInput,
+  PasswordResetRequestInput,
   RegisterInput,
   RegisterResponse,
   TokenPair,
@@ -30,4 +32,20 @@ export async function getMe(): Promise<User> {
 
 export async function logout(refresh: string): Promise<void> {
   await apiClient.post('/auth/logout/', { refresh })
+}
+
+export async function requestPasswordReset(
+  input: PasswordResetRequestInput,
+): Promise<void> {
+  await apiClient.post('/auth/password/reset/', { email: input.email })
+}
+
+export async function confirmPasswordReset(
+  input: PasswordResetConfirmInput,
+): Promise<void> {
+  await apiClient.post('/auth/password/reset/confirm/', {
+    uid: input.uid,
+    token: input.token,
+    new_password: input.newPassword,
+  })
 }

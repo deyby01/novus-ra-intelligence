@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { CheckCircle2 } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import {
   Card,
   CardContent,
@@ -16,6 +17,11 @@ const gridMotif = {
 }
 
 export function LoginPage() {
+  const location = useLocation()
+  const justReset = Boolean(
+    (location.state as { passwordReset?: boolean } | null)?.passwordReset,
+  )
+
   return (
     <div className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
       <aside className="bg-foreground text-background relative hidden flex-col justify-between overflow-hidden p-12 lg:flex">
@@ -50,6 +56,15 @@ export function LoginPage() {
               <CardDescription>Access your workspace.</CardDescription>
             </CardHeader>
             <CardContent>
+              {justReset && (
+                <div
+                  role="status"
+                  className="border-border bg-muted mb-4 flex items-center gap-2 rounded-lg border p-3 text-sm"
+                >
+                  <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+                  <span>Password reset. Sign in with your new password.</span>
+                </div>
+              )}
               <LoginForm />
             </CardContent>
           </Card>

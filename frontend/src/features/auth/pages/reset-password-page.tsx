@@ -30,8 +30,8 @@ export function ResetPasswordPage() {
             Almost there — pick a new password.
           </h1>
           <p className="text-background/60 mt-3 text-base">
-            Choose something strong you'll remember. You'll be signed in right
-            after.
+            Choose something strong you'll remember — you'll use it to sign in
+            next.
           </p>
         </div>
         <p className="text-background/40 relative text-xs">

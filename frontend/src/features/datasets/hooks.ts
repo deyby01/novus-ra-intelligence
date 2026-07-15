@@ -12,6 +12,7 @@ import {
   getDatasetRows,
   getDatasets,
   getImportJob,
+  getRecentDatasets,
   updateDatasetRow,
 } from './api'
 import type { ImportJob, RowData } from './types'
@@ -28,6 +29,22 @@ export function useDatasets() {
   return useQuery({
     queryKey: ['datasets', organizationId],
     queryFn: getDatasets,
+    enabled: isAuthenticated && Boolean(organizationId),
+  })
+}
+
+/**
+ * Query the active workspace's most recently touched datasets (Home).
+ * Keyed by the organization id, like every workspace-scoped query.
+ */
+export function useRecentDatasets(limit: number) {
+  const isAuthenticated = useAuthStore((state) => Boolean(state.accessToken))
+  const organizationId = useWorkspaceStore(
+    (state) => state.currentOrganizationId,
+  )
+  return useQuery({
+    queryKey: ['datasets', 'recent', organizationId, limit],
+    queryFn: () => getRecentDatasets(limit),
     enabled: isAuthenticated && Boolean(organizationId),
   })
 }

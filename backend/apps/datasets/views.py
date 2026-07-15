@@ -1,5 +1,6 @@
 """Tenant-scoped viewsets for datasets, their fields, rows, and import jobs."""
 
+from django.db.models import Count
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -31,10 +32,18 @@ class DatasetViewSet(
 
     permission_classes = [IsAuthenticated]
     serializer_class = DatasetSerializer
-    queryset = Dataset.objects.select_related("organization", "created_by", "updated_by")
+    # Annotate the row count in the database so listing N datasets stays one
+    # query instead of N counts (the Home shows it per dataset). The annotation
+    # adds a GROUP BY, which makes Django treat the model's Meta ordering as
+    # absent, so state it explicitly to keep pagination deterministic.
+    queryset = (
+        Dataset.objects.select_related("organization", "created_by", "updated_by")
+        .annotate(row_count=Count("rows"))
+        .order_by("name")
+    )
     filterset_fields = ["source"]
     search_fields = ["name", "description"]
-    ordering_fields = ["name", "created_at"]
+    ordering_fields = ["name", "created_at", "updated_at"]
 
     @action(detail=True, methods=["get"])
     def aggregate(self, request: Request, pk: str | None = None) -> Response:

@@ -11,6 +11,8 @@ ALLOWED_IMPORT_EXTENSIONS = (".xlsx", ".xls")
 class DatasetSerializer(serializers.ModelSerializer):
     """Serialize datasets, hiding the organization and authorship from writes."""
 
+    row_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Dataset
         fields = [
@@ -18,6 +20,7 @@ class DatasetSerializer(serializers.ModelSerializer):
             "name",
             "description",
             "source",
+            "row_count",
             "created_by",
             "updated_by",
             "created_at",
@@ -30,6 +33,16 @@ class DatasetSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_row_count(self, obj: Dataset) -> int:
+        """Return how many rows the dataset holds.
+
+        Reads the viewset's queryset annotation to keep list responses at one
+        query; falls back to a count for unannotated instances (e.g. the object
+        echoed back by create).
+        """
+        annotated = getattr(obj, "row_count", None)
+        return annotated if annotated is not None else obj.rows.count()
 
 
 class TenantScopedDatasetSerializer(serializers.ModelSerializer):

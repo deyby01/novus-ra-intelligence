@@ -14,6 +14,7 @@ function makeDataset(
   return {
     description: '',
     source: 'manual',
+    row_count: 0,
     created_by: null,
     updated_by: null,
     created_at: '2026-07-08T00:00:00Z',

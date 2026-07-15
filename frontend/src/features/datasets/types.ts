@@ -12,6 +12,8 @@ export interface Dataset {
   name: string
   description: string
   source: DatasetSource
+  /** Rows the dataset holds, annotated by the API. */
+  row_count: number
   created_by: string | null
   updated_by: string | null
   created_at: string

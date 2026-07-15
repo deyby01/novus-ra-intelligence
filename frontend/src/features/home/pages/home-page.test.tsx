@@ -7,25 +7,10 @@ import { useOnboardingStore } from '@/features/onboarding/store'
 import { runTour } from '@/features/onboarding/tour'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
-import type { Dataset } from '@/features/datasets/types'
 import { HomePage } from './home-page'
 
 vi.mock('@/features/onboarding/tour', () => ({ runTour: vi.fn() }))
 const mockRunTour = vi.mocked(runTour)
-
-function makeDataset(
-  overrides: Partial<Dataset> & Pick<Dataset, 'id' | 'name'>,
-): Dataset {
-  return {
-    description: '',
-    source: 'manual',
-    created_by: null,
-    updated_by: null,
-    created_at: '2026-07-08T00:00:00Z',
-    updated_at: '2026-07-08T00:00:00Z',
-    ...overrides,
-  }
-}
 
 function page<T>(results: T[]) {
   return { count: results.length, next: null, previous: null, results }
@@ -37,75 +22,51 @@ describe('HomePage', () => {
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
     useOnboardingStore.getState().reset()
     mockRunTour.mockClear()
-  })
-
-  it('renders the first-run empty state when there are no datasets', async () => {
     server.use(http.get('*/datasets/', () => HttpResponse.json(page([]))))
+  })
+
+  it('renders the redesigned hero and section blocks', async () => {
     renderWithProviders(<HomePage />)
 
     expect(
-      await screen.findByText(/Welcome to Novus RA Intelligence/i),
+      await screen.findByRole('heading', {
+        name: /convierte tu excel en decisiones/i,
+      }),
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: /import your first spreadsheet/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/more ways to start/i)).toBeInTheDocument()
+    expect(screen.getByText('Bienvenido de vuelta')).toBeInTheDocument()
+    expect(screen.getByText('Reportes recientes')).toBeInTheDocument()
+    expect(screen.getByText('Datasets recientes')).toBeInTheDocument()
+    expect(screen.getByText('Actividad reciente')).toBeInTheDocument()
   })
 
-  it('renders recent datasets and the standard import CTA when datasets exist', async () => {
-    server.use(
-      http.get('*/datasets/', () =>
-        HttpResponse.json(
-          page([
-            makeDataset({ id: 'd1', name: 'Dataset 1' }),
-            makeDataset({ id: 'd2', name: 'Dataset 2' }),
-          ]),
-        ),
-      ),
-    )
+  it('runs the home tour once when it has not been seen', async () => {
+    useOnboardingStore.setState({ hasSeenHomeTour: false })
     renderWithProviders(<HomePage />)
 
-    expect(await screen.findByText('Welcome back')).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: /import spreadsheet/i }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('Dataset 1')).toBeInTheDocument()
-    expect(screen.getByText('Dataset 2')).toBeInTheDocument()
+    await waitFor(() => expect(mockRunTour).toHaveBeenCalledWith('/'))
   })
 
-  it('slices the datasets list to a maximum of 6', async () => {
-    const manyDatasets = Array.from({ length: 10 }).map((_, i) =>
-      makeDataset({ id: `d${i}`, name: `Dataset ${i}` }),
-    )
-    server.use(
-      http.get('*/datasets/', () => HttpResponse.json(page(manyDatasets))),
-    )
+  it('does not run the home tour once it has already been seen', async () => {
+    useOnboardingStore.setState({ hasSeenHomeTour: true })
     renderWithProviders(<HomePage />)
 
-    expect(await screen.findByText('Dataset 0')).toBeInTheDocument()
-    expect(screen.getByText('Dataset 5')).toBeInTheDocument()
-    expect(screen.queryByText('Dataset 6')).not.toBeInTheDocument()
+    await screen.findByRole('heading', {
+      name: /convierte tu excel en decisiones/i,
+    })
+    await new Promise((resolve) => setTimeout(resolve, 200))
+
+    expect(mockRunTour).not.toHaveBeenCalled()
   })
 
-  it('triggers the sample dataset import and navigates on completion', async () => {
+  it('triggers the sample dataset import from the hero "Probar demo" button', async () => {
     let datasetCreated = false
     let jobCreated = false
-
     const originalFetch = globalThis.fetch
 
     server.use(
-      http.get('*/datasets/', () => HttpResponse.json(page([]))),
       http.post('*/datasets/', () => {
         datasetCreated = true
-        return HttpResponse.json({
-          id: 'd-sample',
-          name: 'Sample dataset',
-          source: 'excel',
-          created_by: null,
-          updated_by: null,
-          created_at: '',
-          updated_at: '',
-        })
+        return HttpResponse.json({ id: 'd-sample', name: 'Sample dataset' })
       }),
       http.post('*/import-jobs/', () => {
         jobCreated = true
@@ -115,45 +76,19 @@ describe('HomePage', () => {
           dataset: 'd-sample',
           rows_processed: 0,
           errors: {},
-          created_at: '',
-          updated_at: '',
-        })
-      }),
-      http.get('*/import-jobs/j1/', () => {
-        return HttpResponse.json({
-          id: 'j1',
-          status: 'done',
-          dataset: 'd-sample',
-          rows_processed: 10,
-          errors: {},
-          created_at: '',
-          updated_at: '',
         })
       }),
     )
 
-    // Polyfill fetch for the sample file
-    const mockFetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       blob: () =>
-        Promise.resolve(
-          new Blob(['dummy'], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          }),
-        ),
-    })
-    globalThis.fetch = mockFetch as unknown as typeof fetch
+        Promise.resolve(new Blob(['x'], { type: 'application/xlsx' })),
+    }) as unknown as typeof fetch
 
     renderWithProviders(<HomePage />)
 
-    expect(
-      await screen.findByText(/Welcome to Novus RA Intelligence/i),
-    ).toBeInTheDocument()
-
-    // Use click from testing-library/react instead of userEvent as we are in a simple test
-    const trySampleButton = screen.getByRole('button', {
-      name: /try a sample dataset/i,
-    })
-    trySampleButton.click()
+    const button = await screen.findByRole('button', { name: /probar demo/i })
+    button.click()
 
     await waitFor(() => {
       expect(datasetCreated).toBe(true)
@@ -161,27 +96,5 @@ describe('HomePage', () => {
     })
 
     globalThis.fetch = originalFetch
-  })
-
-  it('runs the home tour once when it has not been seen', async () => {
-    useOnboardingStore.setState({ hasSeenHomeTour: false })
-    server.use(http.get('*/datasets/', () => HttpResponse.json(page([]))))
-    renderWithProviders(<HomePage />)
-
-    await screen.findByText(/Welcome to Novus RA Intelligence/i)
-
-    await waitFor(() => expect(mockRunTour).toHaveBeenCalledWith('/'))
-  })
-
-  it('does not run the home tour once it has already been seen', async () => {
-    useOnboardingStore.setState({ hasSeenHomeTour: true })
-    server.use(http.get('*/datasets/', () => HttpResponse.json(page([]))))
-    renderWithProviders(<HomePage />)
-
-    await screen.findByText(/Welcome to Novus RA Intelligence/i)
-    // Give the 100ms tour timer time to fire (or, correctly, not fire).
-    await new Promise((resolve) => setTimeout(resolve, 200))
-
-    expect(mockRunTour).not.toHaveBeenCalled()
   })
 })

@@ -22,7 +22,13 @@ describe('HomePage', () => {
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
     useOnboardingStore.getState().reset()
     mockRunTour.mockClear()
-    server.use(http.get('*/datasets/', () => HttpResponse.json(page([]))))
+    // The Home mounts every section; stub the lists they each fetch so no
+    // request goes unhandled. Individual tests override what they assert on.
+    server.use(
+      http.get('*/datasets/', () => HttpResponse.json(page([]))),
+      http.get('*/reports/', () => HttpResponse.json(page([]))),
+      http.get('*/activity/', () => HttpResponse.json(page([]))),
+    )
   })
 
   it('renders the redesigned hero and section blocks', async () => {

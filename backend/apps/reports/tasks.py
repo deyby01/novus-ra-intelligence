@@ -1,6 +1,8 @@
 import pandas as pd
 from celery import shared_task
 
+from apps.activity.models import ActivityEvent
+from apps.activity.services import record_activity
 from apps.reports.adapters import GeminiAdapter
 from apps.reports.models import Report, ReportStatus
 from apps.reports.prompts import build_analysis_prompt
@@ -40,3 +42,17 @@ def generate_report_task(report_id: str) -> None:
         report.status = ReportStatus.FAILED
         report.error_message = str(e)
         report.save(update_fields=["status", "error_message", "updated_at"])
+        return
+
+    # Record the completed report on the workspace activity feed. Placed after
+    # the try/except (which returns on failure) so only genuine successes emit an
+    # event, and a feed hiccup can never flip a COMPLETED report to FAILED. The
+    # target is the dataset — that is where the report is read from.
+    record_activity(
+        organization=report.organization,
+        actor=report.created_by,
+        verb=ActivityEvent.Verb.REPORT_GENERATED,
+        target_type="dataset",
+        target_id=report.dataset_id,
+        target_label=report.dataset.name,
+    )

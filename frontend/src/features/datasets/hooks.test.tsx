@@ -1,11 +1,12 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { HttpResponse, http } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
-import { useDatasetOverview } from './hooks'
+import { useDatasetOverview, useMarkDatasetOpened } from './hooks'
 import type { DatasetOverview } from './types'
 
 const OVERVIEW: DatasetOverview = {
@@ -91,5 +92,37 @@ describe('useDatasetOverview', () => {
 
     expect(screen.getByText('status:idle')).toBeInTheDocument()
     expect(screen.queryByText('Total rows')).not.toBeInTheDocument()
+  })
+})
+
+/** Fires the mark-opened mutation for a dataset id on click. */
+function MarkOpenedProbe({ id }: { id: string }) {
+  const markOpened = useMarkDatasetOpened()
+  return (
+    <button type="button" onClick={() => markOpened.mutate(id)}>
+      open
+    </button>
+  )
+}
+
+describe('useMarkDatasetOpened', () => {
+  beforeEach(() => {
+    useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
+    useWorkspaceStore.getState().setCurrentOrganization('org-1')
+  })
+
+  it('posts to the dataset open endpoint with the dataset id', async () => {
+    let openedId: string | null = null
+    server.use(
+      http.post('*/datasets/:id/open/', ({ params }) => {
+        openedId = params.id as string
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+
+    renderWithProviders(<MarkOpenedProbe id="d1" />)
+    await userEvent.click(screen.getByRole('button', { name: 'open' }))
+
+    await waitFor(() => expect(openedId).toBe('d1'))
   })
 })

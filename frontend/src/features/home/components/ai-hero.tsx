@@ -1,30 +1,44 @@
 import { Loader2, PlayCircle, Sparkles, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+/** A headline number from the featured overview, already formatted. */
+export interface HeroKpi {
+  label: string
+  value: string
+}
+
 interface AiHeroProps {
   onTrySample: () => void
   isImportingSample: boolean
+  /** Top KPIs of the featured overview; the sample preview shows if omitted. */
+  kpis?: HeroKpi[]
+  /** Bar heights (0–100) from the featured chart; sample bars show if omitted. */
+  bars?: number[]
 }
 
-// Sample preview data (README: fictional SMB — replace with the featured
-// dataset's real overview once wired).
-const previewBars = [
-  { h: 40, tone: 'faint' },
-  { h: 58, tone: 'faint' },
-  { h: 50, tone: 'faint' },
-  { h: 76, tone: 'faint' },
-  { h: 92, tone: 'bright' },
-  { h: 68, tone: 'mid' },
-] as const
+// Sample preview data (README: fictional SMB) — shown only until there is a
+// real dataset to feature.
+const sampleKpis: HeroKpi[] = [
+  { label: 'Ingresos', value: '$142.850' },
+  { label: 'Margen', value: '34,2%' },
+]
+const sampleBars = [40, 58, 50, 76, 92, 68]
 
 const barTone: Record<string, string> = {
   faint: 'bg-white/24',
-  mid: 'bg-white/55',
   bright: 'bg-white',
 }
 
 /** Dark AI hero band — the "import Excel → AI does the rest" hook. */
-export function AiHero({ onTrySample, isImportingSample }: AiHeroProps) {
+export function AiHero({
+  onTrySample,
+  isImportingSample,
+  kpis,
+  bars,
+}: AiHeroProps) {
+  const previewKpis = kpis && kpis.length > 0 ? kpis.slice(0, 2) : sampleKpis
+  const previewBars = bars && bars.length > 0 ? bars : sampleBars
+  const peak = Math.max(...previewBars)
   return (
     <section
       data-tour="import"
@@ -93,18 +107,15 @@ export function AiHero({ onTrySample, isImportingSample }: AiHeroProps) {
           </div>
 
           <div className="mt-3.5 grid grid-cols-2 gap-2.5">
-            {[
-              { label: 'Ingresos', value: '$142.850' },
-              { label: 'Margen', value: '34,2%' },
-            ].map((stat) => (
+            {previewKpis.map((stat) => (
               <div
                 key={stat.label}
                 className="rounded-[11px] bg-white/[0.05] px-3 py-2.5"
               >
-                <div className="text-[9.5px] font-semibold uppercase tracking-[0.04em] text-g400">
+                <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.04em] text-g400">
                   {stat.label}
                 </div>
-                <div className="font-display mt-1 text-xl font-semibold text-white">
+                <div className="font-display mt-1 truncate text-xl font-semibold text-white">
                   {stat.value}
                 </div>
               </div>
@@ -112,11 +123,13 @@ export function AiHero({ onTrySample, isImportingSample }: AiHeroProps) {
           </div>
 
           <div className="mt-2.5 flex h-24 items-end gap-1.5 rounded-[11px] bg-white/[0.05] p-3">
-            {previewBars.map((bar, i) => (
+            {previewBars.map((height, i) => (
               <div
                 key={i}
-                className={`flex-1 rounded-t-[3px] ${barTone[bar.tone]}`}
-                style={{ height: `${bar.h}%` }}
+                className={`flex-1 rounded-t-[3px] ${
+                  peak > 0 && height === peak ? barTone.bright : barTone.faint
+                }`}
+                style={{ height: `${peak > 0 ? (height / peak) * 100 : 2}%` }}
               />
             ))}
           </div>

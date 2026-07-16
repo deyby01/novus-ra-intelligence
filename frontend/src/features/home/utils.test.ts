@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatNumber, formatRows, relativeTime } from './utils'
+import { formatNumber, formatRows, relativeTime, reportExcerpt } from './utils'
 
 describe('formatNumber', () => {
   it('groups thousands the Spanish way regardless of the runtime ICU data', () => {
@@ -39,5 +39,63 @@ describe('relativeTime', () => {
   it('describes days, with "ayer" for one', () => {
     expect(relativeTime(ago(24 * 3_600_000), now)).toBe('ayer')
     expect(relativeTime(ago(3 * 24 * 3_600_000), now)).toBe('hace 3 d')
+  })
+})
+
+describe('reportExcerpt', () => {
+  it('skips headings and returns the first two prose sentences', () => {
+    const md = [
+      '## Executive Summary',
+      '',
+      'Ingresos crecieron un 12% este trimestre. La región Norte lideró el',
+      'crecimiento. El inventario se mantuvo estable.',
+    ].join('\n')
+
+    expect(reportExcerpt(md)).toBe(
+      'Ingresos crecieron un 12% este trimestre. La región Norte lideró el crecimiento.',
+    )
+  })
+
+  it('strips inline markdown — bold, links and code', () => {
+    const md =
+      'El **margen** llegó a `34,2%`. Ver [detalle](https://x.io/report).'
+
+    expect(reportExcerpt(md)).toBe('El margen llegó a 34,2%. Ver detalle.')
+  })
+
+  it('ignores tables, bullets and quotes, keeping only prose', () => {
+    const md = [
+      '# Reporte',
+      '| Mes | Ventas |',
+      '| --- | --- |',
+      '| Ene | 100 |',
+      '',
+      '- punto uno',
+      '> una cita',
+      '',
+      'Las ventas subieron con fuerza.',
+    ].join('\n')
+
+    expect(reportExcerpt(md)).toBe('Las ventas subieron con fuerza.')
+  })
+
+  it('does not split a decimal number into two sentences', () => {
+    const md = 'El margen fue de 12.5% en total. Buen resultado.'
+
+    expect(reportExcerpt(md)).toBe(
+      'El margen fue de 12.5% en total. Buen resultado.',
+    )
+  })
+
+  it('honours the sentence cap', () => {
+    const md = 'Uno. Dos. Tres.'
+
+    expect(reportExcerpt(md, 1)).toBe('Uno.')
+  })
+
+  it('returns an empty string when there is no prose to summarise', () => {
+    const md = ['## Solo un título', '', '| a | b |', '| - | - |'].join('\n')
+
+    expect(reportExcerpt(md)).toBe('')
   })
 })

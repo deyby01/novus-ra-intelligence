@@ -38,3 +38,55 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
   if (days === 1) return 'ayer'
   return `hace ${days} d`
 }
+
+/** Strip inline markdown (links, code, bold, italic, strikethrough) to text. */
+function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // [label](url) → label
+    .replace(/`([^`]+)`/g, '$1') // `code` → code
+    .replace(/(\*\*|__)(.*?)\1/g, '$2') // **bold** / __bold__
+    .replace(/(\*|_)(.*?)\1/g, '$2') // *italic* / _italic_
+    .replace(/~~(.*?)~~/g, '$1') // ~~struck~~
+    .trim()
+}
+
+const EXCERPT_MAX_CHARS = 240
+
+/**
+ * A short, plain-text lead-in from a report's GFM markdown body — the first
+ * couple of prose sentences with the markup stripped. Lets the Home preview
+ * the AI's reading without rendering the whole report.
+ *
+ * Structural lines (headings, table rows, bullets, quotes, rules) are dropped
+ * so only real prose is summarised. Sentences are split on terminators that a
+ * space and a capital follow, so decimals like "12.5%" are never mistaken for
+ * a sentence break.
+ */
+export function reportExcerpt(markdown: string, maxSentences = 2): string {
+  const prose = markdown
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(
+      (line) =>
+        line.length > 0 &&
+        !line.startsWith('#') && // headings
+        !line.startsWith('|') && // table rows
+        !line.startsWith('>') && // block quotes
+        !/^[-*+]\s/.test(line) && // unordered list items
+        !/^\d+\.\s/.test(line) && // ordered list items
+        !/^[-*_]{3,}$/.test(line), // horizontal rules
+    )
+    .map(stripInlineMarkdown)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!prose) return ''
+
+  const sentences = prose.split(/(?<=[.!?])\s+(?=[¿¡"'A-ZÁÉÍÓÚÑÜ])/)
+  const excerpt = sentences.slice(0, maxSentences).join(' ').trim()
+
+  if (excerpt.length <= EXCERPT_MAX_CHARS) return excerpt
+  const clipped = excerpt.slice(0, EXCERPT_MAX_CHARS)
+  return `${clipped.slice(0, clipped.lastIndexOf(' ')).trim()}…`
+}

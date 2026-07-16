@@ -2,17 +2,19 @@ import { ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  useDatasetOverview,
   useImportExcel,
   useImportJob,
   useRecentDatasets,
 } from '@/features/datasets/hooks'
 import { useOnboardingStore } from '@/features/onboarding/store'
 import { runTour } from '@/features/onboarding/tour'
-import { AiHero } from '../components/ai-hero'
+import { AiHero, type HeroKpi } from '../components/ai-hero'
 import { FeaturedOverview } from '../components/featured-overview'
 import { RecentActivity } from '../components/recent-activity'
 import { RecentDatasets } from '../components/recent-datasets'
 import { RecentReports } from '../components/recent-reports'
+import { formatNumber } from '../utils'
 
 /** Datasets shown in the "recent" list; the first one is featured above. */
 const RECENT_LIMIT = 4
@@ -24,6 +26,21 @@ export function HomePage() {
   const { data: recentDatasets, isPending } = useRecentDatasets(RECENT_LIMIT)
   const featured = recentDatasets?.[0]
   const { hasSeenHomeTour } = useOnboardingStore()
+
+  // Feed the hero's preview card with the featured overview's top KPIs + chart.
+  // Same query key as <FeaturedOverview />, so both share one request.
+  const { data: featuredOverview } = useDatasetOverview(featured?.id ?? '')
+  const heroKpis: HeroKpi[] | undefined = featuredOverview?.widgets
+    .filter((w) => w.chart_type === 'kpi')
+    .slice(0, 2)
+    .map((w) => ({
+      label: w.config.title,
+      value: formatNumber(w.results[0]?.value ?? 0),
+    }))
+  const heroChart = featuredOverview?.widgets.find(
+    (w) => w.chart_type === 'bar' || w.chart_type === 'line',
+  )
+  const heroBars = heroChart?.results.map((r) => r.value ?? 0)
 
   const [sampleJobId, setSampleJobId] = useState<string | null>(null)
   const importExcel = useImportExcel()
@@ -64,7 +81,12 @@ export function HomePage() {
 
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-7 pb-[34px] pt-[26px]">
-      <AiHero onTrySample={onTrySample} isImportingSample={isImportingSample} />
+      <AiHero
+        onTrySample={onTrySample}
+        isImportingSample={isImportingSample}
+        kpis={heroKpis}
+        bars={heroBars}
+      />
 
       {/* Header row */}
       <div className="flex items-end justify-between gap-4">

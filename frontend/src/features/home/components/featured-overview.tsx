@@ -2,7 +2,8 @@ import { Loader2, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useDatasetOverview } from '@/features/datasets/hooks'
 import type { Dataset, OverviewWidget } from '@/features/datasets/types'
-import { formatNumber, formatRows, relativeTime } from '../utils'
+import { useReports } from '@/features/reports/hooks'
+import { formatNumber, formatRows, relativeTime, reportExcerpt } from '../utils'
 
 interface FeaturedOverviewProps {
   /** The dataset to feature — the most recently touched one. */
@@ -65,6 +66,7 @@ export function FeaturedOverview({ dataset }: FeaturedOverviewProps) {
     refetch,
     isFetching,
   } = useDatasetOverview(dataset?.id ?? '')
+  const { data: reports } = useReports(dataset?.id ?? '')
 
   if (!dataset) {
     return (
@@ -97,6 +99,11 @@ export function FeaturedOverview({ dataset }: FeaturedOverviewProps) {
   const chart = overview?.widgets.find(
     (w) => w.chart_type === 'bar' || w.chart_type === 'line',
   )
+
+  // The AI's reading = an excerpt of the dataset's latest completed report.
+  // The list is ordered newest-first, so the first completed one is the latest.
+  const latestReport = reports?.find((r) => r.status === 'COMPLETED')
+  const aiReading = latestReport ? reportExcerpt(latestReport.content) : ''
 
   return (
     <Panel>
@@ -182,7 +189,7 @@ export function FeaturedOverview({ dataset }: FeaturedOverviewProps) {
 
       {chart && <OverviewChart widget={chart} />}
 
-      {/* AI reading — wired to the dataset's latest report in R4. */}
+      {/* AI reading — an excerpt of the dataset's latest completed report. */}
       {overview && (kpis.length > 0 || chart) && (
         <div className="bg-g900 mt-3 flex items-start gap-2.5 rounded-[14px] px-4 py-3.5">
           <Sparkles
@@ -193,7 +200,8 @@ export function FeaturedOverview({ dataset }: FeaturedOverviewProps) {
             <span className="font-display font-semibold text-white">
               Lectura de la IA:
             </span>{' '}
-            genera un reporte de este dataset para ver la interpretación.
+            {aiReading ||
+              'genera un reporte de este dataset para ver la interpretación.'}
           </p>
         </div>
       )}

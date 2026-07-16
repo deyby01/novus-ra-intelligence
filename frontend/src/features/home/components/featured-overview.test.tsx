@@ -4,9 +4,28 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useAuthStore } from '@/features/auth/store'
 import { useWorkspaceStore } from '@/features/organizations/store'
 import type { Dataset, DatasetOverview } from '@/features/datasets/types'
+import type { Report } from '@/features/reports/types'
 import { server } from '@/test/server'
 import { renderWithProviders } from '@/test/utils'
 import { FeaturedOverview } from './featured-overview'
+
+/** Empty page, so the report query resolves cleanly when a test ignores it. */
+function reportsPage(results: Report[] = []) {
+  return { count: results.length, next: null, previous: null, results }
+}
+
+function makeReport(overrides: Partial<Report> & Pick<Report, 'id'>): Report {
+  return {
+    dataset: 'd1',
+    dataset_name: 'Ventas Q3',
+    status: 'COMPLETED',
+    content: '',
+    error_message: '',
+    created_at: '2026-07-12T00:00:00Z',
+    updated_at: '2026-07-12T00:00:00Z',
+    ...overrides,
+  }
+}
 
 const dataset: Dataset = {
   id: 'd1',
@@ -81,6 +100,9 @@ describe('FeaturedOverview', () => {
   beforeEach(() => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
+    // The component also lists the dataset's reports for the AI reading; by
+    // default there are none, so the block shows its generate CTA.
+    server.use(http.get('*/reports/', () => HttpResponse.json(reportsPage())))
   })
 
   it('renders KPIs and the chart derived from the dataset schema', async () => {
@@ -176,6 +198,48 @@ describe('FeaturedOverview', () => {
 
     expect(
       await screen.findByText(/no pudimos generar el overview/i),
+    ).toBeInTheDocument()
+  })
+
+  it("reads the excerpt of the dataset's latest completed report", async () => {
+    server.use(
+      http.get('*/datasets/d1/overview/', () => HttpResponse.json(overview)),
+      http.get('*/reports/', () =>
+        HttpResponse.json(
+          reportsPage([
+            makeReport({
+              id: 'r1',
+              status: 'COMPLETED',
+              content:
+                '## Resumen\n\nLas ventas crecieron un 12% este trimestre. Norte lideró.',
+            }),
+          ]),
+        ),
+      ),
+    )
+    renderWithProviders(<FeaturedOverview dataset={dataset} />)
+
+    expect(
+      await screen.findByText(
+        /las ventas crecieron un 12% este trimestre\. norte lideró\./i,
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the generate CTA when no completed report exists yet', async () => {
+    server.use(
+      http.get('*/datasets/d1/overview/', () => HttpResponse.json(overview)),
+      http.get('*/reports/', () =>
+        HttpResponse.json(
+          reportsPage([makeReport({ id: 'r1', status: 'PENDING' })]),
+        ),
+      ),
+    )
+    renderWithProviders(<FeaturedOverview dataset={dataset} />)
+
+    // The AI block appears (overview has widgets) but still invites a report.
+    expect(
+      await screen.findByText(/genera un reporte de este dataset/i),
     ).toBeInTheDocument()
   })
 })

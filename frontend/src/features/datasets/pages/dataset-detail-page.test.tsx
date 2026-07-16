@@ -194,6 +194,27 @@ describe('DatasetDetailPage', () => {
     expect(await screen.findByText('AI-Powered Insights')).toBeInTheDocument()
   })
 
+  it('marks the dataset as opened once on mount, for recency ordering', async () => {
+    let openCalls = 0
+    server.use(
+      http.get('*/datasets/d1/', () => HttpResponse.json(DATASET)),
+      http.post('*/datasets/d1/open/', () => {
+        openCalls += 1
+        return new HttpResponse(null, { status: 204 })
+      }),
+      http.get('*/dataset-fields/', () => HttpResponse.json(page([]))),
+      http.get('*/dataset-rows/', () => HttpResponse.json(page([]))),
+      http.get('*/datasets/d1/overview/', () =>
+        HttpResponse.json(OVERVIEW_WITH_WIDGETS),
+      ),
+      http.get('*/reports/', () => HttpResponse.json(page([]))),
+    )
+    renderDetail()
+
+    await screen.findByText('Sales')
+    await waitFor(() => expect(openCalls).toBe(1))
+  })
+
   it('shows an overview empty state when widgets list is empty', async () => {
     stub({
       fields: [field({ id: 'f1', key: 'region', label: 'Region' })],

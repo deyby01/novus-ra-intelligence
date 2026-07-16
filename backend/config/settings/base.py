@@ -30,6 +30,7 @@ CORS_ALLOW_HEADERS = (*default_headers, "x-organization")
 
 # --- Applications ---
 DJANGO_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -150,6 +151,7 @@ USE_TZ = True
 
 # --- Static & media files ---
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -198,3 +200,51 @@ FRONTEND_BASE_URL = env("DJANGO_FRONTEND_BASE_URL", default="http://localhost:51
 PASSWORD_RESET_TIMEOUT = env.int("DJANGO_PASSWORD_RESET_TIMEOUT", default=3600)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Jazzmin Admin Panel Settings ---
+JAZZMIN_SETTINGS = {
+    "site_title": "Novus Admin",
+    "site_header": "Novus RA",
+    "site_brand": "Novus RA Intelligence",
+    "welcome_sign": "Welcome to Novus RA Intelligence Admin",
+    "copyright": "Novus RA Intelligence",
+    "search_model": ["accounts.User", "organizations.Organization"],
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "View Site", "url": "/"},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "icons": {
+        "accounts.User": "fas fa-users",
+        "organizations.Organization": "fas fa-building",
+        "organizations.Membership": "fas fa-id-badge",
+        "datasets.Dataset": "fas fa-database",
+        "reports.Report": "fas fa-file-alt",
+        "dashboards.Dashboard": "fas fa-chart-line",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar": "navbar-dark",
+    "theme": "darkly",
+    "dark_mode_theme": "darkly",
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-dark",
+    "accent": "accent-primary",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
+}

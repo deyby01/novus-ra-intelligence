@@ -15,6 +15,7 @@ django-environ~=0.12               # reads .env into settings
 django-cors-headers~=4.7           # allows requests from the frontend (Vite)
 django-filter~=25.1                # declarative filtering on list endpoints
 drf-spectacular~=0.28              # automatic OpenAPI schema + Swagger UI
+django-jazzmin~=3.0                # professional admin panel design
 
 # -- Phase 1: Excel import + async tasks --
 celery~=5.4                        # distributed task queue (async Excel import)

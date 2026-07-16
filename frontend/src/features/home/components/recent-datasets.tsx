@@ -2,6 +2,7 @@ import { FileSpreadsheet, Pencil } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRecentDatasets } from '@/features/datasets/hooks'
 import type { DatasetSource } from '@/features/datasets/types'
+import { formatRows } from '../utils'
 
 const RECENT_LIMIT = 4
 
@@ -13,14 +14,6 @@ const sourceLabel: Record<DatasetSource, string> = {
 function SourceIcon({ source }: { source: DatasetSource }) {
   const Icon = source === 'manual' ? Pencil : FileSpreadsheet
   return <Icon className="size-[17px]" strokeWidth={1.5} />
-}
-
-function formatRows(count: number): string {
-  // Group thousands with "." explicitly: `toLocaleString` depends on the
-  // runtime's ICU data, so it silently stops grouping under Node's small-icu
-  // build (tests/CI) while grouping in the browser.
-  const grouped = count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `${grouped} ${count === 1 ? 'fila' : 'filas'}`
 }
 
 /** Block 6 — the workspace's most recently touched datasets. */

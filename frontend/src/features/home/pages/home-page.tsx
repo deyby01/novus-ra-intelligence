@@ -2,9 +2,9 @@ import { ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  useDatasets,
   useImportExcel,
   useImportJob,
+  useRecentDatasets,
 } from '@/features/datasets/hooks'
 import { useOnboardingStore } from '@/features/onboarding/store'
 import { runTour } from '@/features/onboarding/tour'
@@ -14,9 +14,15 @@ import { RecentActivity } from '../components/recent-activity'
 import { RecentDatasets } from '../components/recent-datasets'
 import { RecentReports } from '../components/recent-reports'
 
+/** Datasets shown in the "recent" list; the first one is featured above. */
+const RECENT_LIMIT = 4
+
 export function HomePage() {
   const navigate = useNavigate()
-  const { isPending } = useDatasets()
+  // Same query key as <RecentDatasets />, so React Query serves both from one
+  // request. The most recent dataset is the one we feature.
+  const { data: recentDatasets, isPending } = useRecentDatasets(RECENT_LIMIT)
+  const featured = recentDatasets?.[0]
   const { hasSeenHomeTour } = useOnboardingStore()
 
   const [sampleJobId, setSampleJobId] = useState<string | null>(null)
@@ -81,7 +87,7 @@ export function HomePage() {
 
       {/* Grid 1: featured overview | recent reports */}
       <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-        <FeaturedOverview />
+        <FeaturedOverview dataset={featured} />
         <RecentReports />
       </div>
 

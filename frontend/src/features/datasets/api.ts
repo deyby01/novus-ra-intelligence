@@ -16,6 +16,23 @@ export async function getDatasets(): Promise<Dataset[]> {
   return data.results
 }
 
+/**
+ * Fetch the most recently touched datasets. The API applies the ordering, so
+ * taking the first `limit` of the page yields the genuinely most recent ones
+ * (the default listing is alphabetical, which is not what the Home wants).
+ */
+export async function getRecentDatasets(limit: number): Promise<Dataset[]> {
+  const { data } = await apiClient.get<Paginated<Dataset>>('/datasets/', {
+    params: { ordering: '-last_activity' },
+  })
+  return data.results.slice(0, limit)
+}
+
+/** Notify the backend that the user opened a dataset (recency tracking). */
+export async function markDatasetOpened(id: string): Promise<void> {
+  await apiClient.post(`/datasets/${id}/open/`)
+}
+
 /** Fetch a single dataset by id (scoped to the active workspace). */
 export async function getDataset(id: string): Promise<Dataset> {
   const { data } = await apiClient.get<Dataset>(`/datasets/${id}/`)

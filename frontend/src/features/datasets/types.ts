@@ -12,6 +12,10 @@ export interface Dataset {
   name: string
   description: string
   source: DatasetSource
+  /** Rows the dataset holds, annotated by the API. */
+  row_count: number
+  /** When the user last opened this dataset (null = never opened). */
+  last_opened_at: string | null
   created_by: string | null
   updated_by: string | null
   created_at: string

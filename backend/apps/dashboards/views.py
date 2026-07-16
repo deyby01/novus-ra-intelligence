@@ -2,7 +2,10 @@
 
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.serializers import BaseSerializer
 
+from apps.activity.models import ActivityEvent
+from apps.activity.services import record_activity
 from apps.core.tenancy import AuthoredModelViewSetMixin, TenantQuerysetMixin
 from apps.dashboards.models import Dashboard, Widget
 from apps.dashboards.serializers import DashboardSerializer, WidgetSerializer
@@ -20,6 +23,19 @@ class DashboardViewSet(
     queryset = Dashboard.objects.select_related("organization", "created_by", "updated_by")
     search_fields = ["name"]
     ordering_fields = ["name", "created_at"]
+
+    def perform_create(self, serializer: BaseSerializer) -> None:
+        """Create the dashboard, then record it on the activity feed."""
+        super().perform_create(serializer)
+        dashboard = serializer.instance
+        record_activity(
+            organization=dashboard.organization,
+            actor=self.request.user,
+            verb=ActivityEvent.Verb.DASHBOARD_CREATED,
+            target_type="dashboard",
+            target_id=dashboard.id,
+            target_label=dashboard.name,
+        )
 
 
 class WidgetViewSet(

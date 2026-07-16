@@ -12,6 +12,8 @@ import {
   getDatasetRows,
   getDatasets,
   getImportJob,
+  getRecentDatasets,
+  markDatasetOpened,
   updateDatasetRow,
 } from './api'
 import type { ImportJob, RowData } from './types'
@@ -28,6 +30,22 @@ export function useDatasets() {
   return useQuery({
     queryKey: ['datasets', organizationId],
     queryFn: getDatasets,
+    enabled: isAuthenticated && Boolean(organizationId),
+  })
+}
+
+/**
+ * Query the active workspace's most recently touched datasets (Home).
+ * Keyed by the organization id, like every workspace-scoped query.
+ */
+export function useRecentDatasets(limit: number) {
+  const isAuthenticated = useAuthStore((state) => Boolean(state.accessToken))
+  const organizationId = useWorkspaceStore(
+    (state) => state.currentOrganizationId,
+  )
+  return useQuery({
+    queryKey: ['datasets', 'recent', organizationId, limit],
+    queryFn: () => getRecentDatasets(limit),
     enabled: isAuthenticated && Boolean(organizationId),
   })
 }
@@ -140,6 +158,20 @@ export function useImportJob(id: string | null) {
     refetchInterval: (query) => {
       const status = query.state.data?.status
       return status === 'pending' || status === 'processing' ? 1500 : false
+    },
+  })
+}
+
+/**
+ * Mark a dataset as opened; invalidates the recent-datasets cache so
+ * the Home reorders immediately.
+ */
+export function useMarkDatasetOpened() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: markDatasetOpened,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['datasets', 'recent'] })
     },
   })
 }

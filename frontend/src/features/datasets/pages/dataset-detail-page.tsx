@@ -15,6 +15,7 @@ import {
   useDatasetFields,
   useDatasetOverview,
   useDatasetRows,
+  useMarkDatasetOpened,
   useRowMutations,
 } from '../hooks'
 import type { DatasetRow, RowData } from '../types'
@@ -28,10 +29,20 @@ export function DatasetDetailPage() {
   const rows = useDatasetRows(datasetId)
   const { create, update, remove } = useRowMutations(datasetId)
   const overview = useDatasetOverview(datasetId)
+  const markOpened = useMarkDatasetOpened()
 
   const { hasSeenOverviewTour } = useOnboardingStore()
 
   const [editing, setEditing] = useState<Editing>(null)
+
+  // Record this dataset as "opened" once on mount (recency tracking).
+  useEffect(() => {
+    if (datasetId) {
+      markOpened.mutate(datasetId)
+    }
+    // Fire exactly once per dataset id — the mutation ref is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datasetId])
 
   useEffect(() => {
     if (

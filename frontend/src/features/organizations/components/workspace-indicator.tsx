@@ -1,5 +1,5 @@
+import { ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { useMemberships } from '../hooks'
 import { useWorkspaceStore } from '../store'
 
@@ -19,18 +19,19 @@ export function WorkspaceIndicator() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="bg-foreground text-background grid size-6 place-items-center rounded text-xs font-semibold">
+    <button
+      type="button"
+      onClick={() => navigate('/select-workspace')}
+      title="Switch workspace"
+      className="hover:bg-g100 flex items-center gap-2 rounded-lg px-1.5 py-1 transition-colors"
+    >
+      <span className="bg-g100 text-g900 font-display grid size-[22px] place-items-center rounded-[7px] text-[11px] font-semibold">
         {current.organization.name.charAt(0).toUpperCase()}
       </span>
-      <span className="text-sm font-medium">{current.organization.name}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => navigate('/select-workspace')}
-      >
-        Switch
-      </Button>
-    </div>
+      <span className="text-g900 text-[13px] font-semibold">
+        {current.organization.name}
+      </span>
+      <ChevronDown className="text-g400 size-3.5" strokeWidth={1.5} />
+    </button>
   )
 }

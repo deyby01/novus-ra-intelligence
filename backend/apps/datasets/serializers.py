@@ -21,6 +21,7 @@ class DatasetSerializer(serializers.ModelSerializer):
             "description",
             "source",
             "row_count",
+            "last_opened_at",
             "created_by",
             "updated_by",
             "created_at",
@@ -28,6 +29,7 @@ class DatasetSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
+            "last_opened_at",
             "created_by",
             "updated_by",
             "created_at",

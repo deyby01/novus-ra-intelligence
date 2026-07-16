@@ -35,9 +35,7 @@ def test_dataset_list_includes_row_count(membership):
     dataset = DatasetFactory(organization=membership.organization)
     DatasetRowFactory.create_batch(3, dataset=dataset)
 
-    response = _client(membership.user).get(
-        DATASETS_URL, **_header(membership.organization)
-    )
+    response = _client(membership.user).get(DATASETS_URL, **_header(membership.organization))
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data["results"][0]["row_count"] == 3
@@ -47,9 +45,7 @@ def test_dataset_list_includes_row_count(membership):
 def test_row_count_is_zero_for_a_dataset_without_rows(membership):
     DatasetFactory(organization=membership.organization)
 
-    response = _client(membership.user).get(
-        DATASETS_URL, **_header(membership.organization)
-    )
+    response = _client(membership.user).get(DATASETS_URL, **_header(membership.organization))
 
     assert response.data["results"][0]["row_count"] == 0
 
@@ -62,9 +58,7 @@ def test_row_count_counts_only_the_datasets_own_rows(membership):
     DatasetRowFactory.create_batch(2, dataset=first)
     DatasetRowFactory.create_batch(5, dataset=second)
 
-    response = _client(membership.user).get(
-        DATASETS_URL, **_header(membership.organization)
-    )
+    response = _client(membership.user).get(DATASETS_URL, **_header(membership.organization))
 
     counts = {row["name"]: row["row_count"] for row in response.data["results"]}
     assert counts == {"A dataset": 2, "B dataset": 5}

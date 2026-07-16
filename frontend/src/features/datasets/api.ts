@@ -23,9 +23,14 @@ export async function getDatasets(): Promise<Dataset[]> {
  */
 export async function getRecentDatasets(limit: number): Promise<Dataset[]> {
   const { data } = await apiClient.get<Paginated<Dataset>>('/datasets/', {
-    params: { ordering: '-updated_at' },
+    params: { ordering: '-last_activity' },
   })
   return data.results.slice(0, limit)
+}
+
+/** Notify the backend that the user opened a dataset (recency tracking). */
+export async function markDatasetOpened(id: string): Promise<void> {
+  await apiClient.post(`/datasets/${id}/open/`)
 }
 
 /** Fetch a single dataset by id (scoped to the active workspace). */

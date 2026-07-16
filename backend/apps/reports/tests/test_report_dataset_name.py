@@ -44,9 +44,7 @@ def test_dataset_name_is_read_only(client, membership):
     """A client cannot rename a dataset through the report endpoint."""
     dataset = DatasetFactory(organization=membership.organization, name="Original")
 
-    response = client.post(
-        REPORTS_URL, {"dataset": str(dataset.id), "dataset_name": "Hacked"}
-    )
+    response = client.post(REPORTS_URL, {"dataset": str(dataset.id), "dataset_name": "Hacked"})
 
     assert response.status_code == status.HTTP_201_CREATED
     dataset.refresh_from_db()

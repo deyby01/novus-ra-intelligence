@@ -16,6 +16,7 @@ function makeDataset(
     description: '',
     source: 'excel',
     row_count: 0,
+    last_opened_at: null,
     created_by: null,
     updated_by: null,
     created_at: '2026-07-10T00:00:00Z',
@@ -67,7 +68,7 @@ describe('RecentDatasets', () => {
     expect(screen.getByText('1 fila')).toBeInTheDocument()
   })
 
-  it('requests the most recent datasets from the API, not the default order', async () => {
+  it('requests the most recent datasets by last_activity, not the default order', async () => {
     let requestedOrdering: string | null = null
     server.use(
       http.get('*/datasets/', ({ request }) => {
@@ -78,7 +79,7 @@ describe('RecentDatasets', () => {
     renderWithProviders(<RecentDatasets />)
 
     await screen.findByText('A dataset')
-    expect(requestedOrdering).toBe('-updated_at')
+    expect(requestedOrdering).toBe('-last_activity')
   })
 
   it('shows an empty state with an import CTA when there are no datasets', async () => {

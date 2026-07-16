@@ -33,6 +33,7 @@ const dataset: Dataset = {
   description: '',
   source: 'excel',
   row_count: 1662,
+  last_opened_at: null,
   created_by: null,
   updated_by: null,
   created_at: '2026-07-10T00:00:00Z',

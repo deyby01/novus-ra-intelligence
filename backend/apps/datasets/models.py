@@ -23,6 +23,7 @@ class Dataset(TenantBaseModel, AuthoredModel):
         choices=Source.choices,
         default=Source.MANUAL,
     )
+    last_opened_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["name"]

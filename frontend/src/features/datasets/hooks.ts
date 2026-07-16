@@ -13,6 +13,7 @@ import {
   getDatasets,
   getImportJob,
   getRecentDatasets,
+  markDatasetOpened,
   updateDatasetRow,
 } from './api'
 import type { ImportJob, RowData } from './types'
@@ -157,6 +158,20 @@ export function useImportJob(id: string | null) {
     refetchInterval: (query) => {
       const status = query.state.data?.status
       return status === 'pending' || status === 'processing' ? 1500 : false
+    },
+  })
+}
+
+/**
+ * Mark a dataset as opened; invalidates the recent-datasets cache so
+ * the Home reorders immediately.
+ */
+export function useMarkDatasetOpened() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: markDatasetOpened,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['datasets', 'recent'] })
     },
   })
 }

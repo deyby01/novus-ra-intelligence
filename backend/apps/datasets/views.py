@@ -1,7 +1,9 @@
 """Tenant-scoped viewsets for datasets, their fields, rows, and import jobs."""
 
 from django.db.models import Count
-from rest_framework import mixins, viewsets
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -38,12 +40,15 @@ class DatasetViewSet(
     # absent, so state it explicitly to keep pagination deterministic.
     queryset = (
         Dataset.objects.select_related("organization", "created_by", "updated_by")
-        .annotate(row_count=Count("rows"))
+        .annotate(
+            row_count=Count("rows"),
+            last_activity=Coalesce("last_opened_at", "updated_at"),
+        )
         .order_by("name")
     )
     filterset_fields = ["source"]
     search_fields = ["name", "description"]
-    ordering_fields = ["name", "created_at", "updated_at"]
+    ordering_fields = ["name", "created_at", "updated_at", "last_activity"]
 
     @action(detail=True, methods=["get"])
     def aggregate(self, request: Request, pk: str | None = None) -> Response:
@@ -73,6 +78,14 @@ class DatasetViewSet(
         """Return a deterministic, ephemeral overview (KPIs + charts) of the dataset."""
         dataset = self.get_object()
         return Response(build_dataset_overview(dataset))
+
+    @action(detail=True, methods=["post"], url_path="open")
+    def open(self, request: Request, pk: str | None = None) -> Response:
+        """Touch the dataset's last-opened timestamp for recency ordering."""
+        dataset = self.get_object()
+        dataset.last_opened_at = timezone.now()
+        dataset.save(update_fields=["last_opened_at", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DatasetFieldViewSet(

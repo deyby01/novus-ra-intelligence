@@ -116,6 +116,10 @@ function stub({
 }) {
   server.use(
     http.get('*/datasets/d1/', () => HttpResponse.json(DATASET)),
+    http.post(
+      '*/datasets/d1/open/',
+      () => new HttpResponse(null, { status: 204 }),
+    ),
     http.get('*/dataset-fields/', () => HttpResponse.json(page(fields))),
     http.get('*/dataset-rows/', () => HttpResponse.json(page(rows))),
     http.get('*/datasets/d1/overview/', () => HttpResponse.json(overview)),
@@ -140,6 +144,13 @@ describe('DatasetDetailPage', () => {
     useWorkspaceStore.getState().setCurrentOrganization('org-1')
     useOnboardingStore.setState({ hasSeenOverviewTour: true })
     mockRunTour.mockClear()
+    // The detail page fires a POST to mark the dataset as opened on mount.
+    server.use(
+      http.post(
+        '*/datasets/*/open/',
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    )
   })
 
   it('runs the overview tour once when it has not been seen', async () => {

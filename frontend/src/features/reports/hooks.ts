@@ -15,9 +15,48 @@ export const reportKeys = {
   lists: () => [...reportKeys.all, 'list'] as const,
   list: (organizationId: string | null, datasetId: string) =>
     [...reportKeys.lists(), organizationId, datasetId] as const,
+  recent: (organizationId: string | null, limit: number) =>
+    [...reportKeys.lists(), 'recent', organizationId, limit] as const,
   details: () => [...reportKeys.all, 'detail'] as const,
   detail: (organizationId: string | null, id: string) =>
     [...reportKeys.details(), organizationId, id] as const,
+}
+
+/**
+ * The workspace's latest reports across datasets (the Home), keyed by the
+ * active organization. Polls while any report is still being generated so a
+ * freshly requested one flips to its final state on its own.
+ */
+export function useRecentReports(limit: number) {
+  const isAuthenticated = useAuthStore((state) => Boolean(state.accessToken))
+  const organizationId = useWorkspaceStore(
+    (state) => state.currentOrganizationId,
+  )
+  return useQuery({
+    queryKey: reportKeys.recent(organizationId, limit),
+    queryFn: () => reportsApi.listRecent(limit),
+    enabled: isAuthenticated && Boolean(organizationId),
+    refetchInterval: (query) =>
+      query.state.data?.some((report) => report.status === 'PENDING')
+        ? 2500
+        : false,
+  })
+}
+
+/** Request a report for any dataset from the Home, refreshing the recent list. */
+export function useGenerateReport(limit: number) {
+  const queryClient = useQueryClient()
+  const organizationId = useWorkspaceStore(
+    (state) => state.currentOrganizationId,
+  )
+  return useMutation({
+    mutationFn: (payload: CreateReportPayload) => reportsApi.create(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: reportKeys.recent(organizationId, limit),
+      })
+    },
+  })
 }
 
 /** List a dataset's reports, keyed by the active organization. */

@@ -15,6 +15,7 @@ function report(
 ): Report {
   return {
     dataset: 'd1',
+    dataset_name: 'Sales sample',
     content: '## Executive Summary\n\nRevenue is up.',
     error_message: '',
     created_at: '2026-07-08T00:00:00Z',

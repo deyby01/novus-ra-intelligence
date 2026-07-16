@@ -10,6 +10,17 @@ export const reportsApi = {
     return data.results
   },
 
+  /**
+   * The workspace's latest reports across every dataset (the Home). The API
+   * applies the ordering, so taking the first `limit` yields the newest.
+   */
+  listRecent: async (limit: number): Promise<Report[]> => {
+    const { data } = await apiClient.get<Paginated<Report>>('/reports/', {
+      params: { ordering: '-created_at' },
+    })
+    return data.results.slice(0, limit)
+  },
+
   retrieve: async (id: string): Promise<Report> => {
     const { data } = await apiClient.get<Report>(`/reports/${id}/`)
     return data

@@ -20,7 +20,11 @@ class DashboardViewSet(
 
     permission_classes = [IsAuthenticated]
     serializer_class = DashboardSerializer
-    queryset = Dashboard.objects.select_related("organization", "created_by", "updated_by")
+    # Prefetch widgets so the serializer can expose each dashboard's widget
+    # types + connected datasets (for the card preview) without an N+1.
+    queryset = Dashboard.objects.select_related(
+        "organization", "created_by", "updated_by"
+    ).prefetch_related("widgets")
     search_fields = ["name"]
     ordering_fields = ["name", "created_at"]
 

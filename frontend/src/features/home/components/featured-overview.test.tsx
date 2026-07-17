@@ -33,6 +33,8 @@ const dataset: Dataset = {
   description: '',
   source: 'excel',
   row_count: 1662,
+  field_count: 5,
+  has_report: false,
   last_opened_at: null,
   created_by: null,
   updated_by: null,

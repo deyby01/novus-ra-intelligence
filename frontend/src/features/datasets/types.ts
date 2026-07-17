@@ -14,6 +14,10 @@ export interface Dataset {
   source: DatasetSource
   /** Rows the dataset holds, annotated by the API. */
   row_count: number
+  /** Columns (schema fields) the dataset defines, annotated by the API. */
+  field_count: number
+  /** Whether the AI has produced at least one report for this dataset. */
+  has_report: boolean
   /** When the user last opened this dataset (null = never opened). */
   last_opened_at: string | null
   created_by: string | null

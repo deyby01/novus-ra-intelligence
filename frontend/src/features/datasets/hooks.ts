@@ -149,6 +149,18 @@ export function useImportExcel() {
   })
 }
 
+/** Create an empty manual dataset (no file) and refresh the datasets list. */
+export function useCreateDataset() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { name: string; description?: string }) =>
+      createDataset({ ...input, source: 'manual' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['datasets'] })
+    },
+  })
+}
+
 /** Poll an import job until it finishes (done or error). */
 export function useImportJob(id: string | null) {
   return useQuery({

@@ -1,6 +1,6 @@
 """Tenant-scoped viewsets for datasets, their fields, rows, and import jobs."""
 
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework import mixins, status, viewsets
@@ -23,6 +23,7 @@ from apps.datasets.serializers import (
 from apps.datasets.services.aggregation_service import aggregate_dataset
 from apps.datasets.services.overview_service import build_dataset_overview
 from apps.datasets.tasks import process_import_job
+from apps.reports.models import Report
 
 
 class DatasetViewSet(
@@ -34,15 +35,27 @@ class DatasetViewSet(
 
     permission_classes = [IsAuthenticated]
     serializer_class = DatasetSerializer
-    # Annotate the row count in the database so listing N datasets stays one
-    # query instead of N counts (the Home shows it per dataset). The annotation
-    # adds a GROUP BY, which makes Django treat the model's Meta ordering as
-    # absent, so state it explicitly to keep pagination deterministic.
+    # Annotate per-dataset counts in the database so listing N datasets stays a
+    # constant number of queries (the Home + Datasets grid show these per card).
+    # `row_count` is a JOIN aggregate; `field_count` and `has_report` are a
+    # subquery / EXISTS so they don't multiply the row join (a cartesian blow-up
+    # that would inflate every count). The row_count annotation adds a GROUP BY,
+    # which makes Django treat the model's Meta ordering as absent, so state it
+    # explicitly to keep pagination deterministic.
+    _field_count = (
+        DatasetField.objects.filter(dataset=OuterRef("pk"))
+        .order_by()
+        .values("dataset")
+        .annotate(count=Count("id"))
+        .values("count")
+    )
     queryset = (
         Dataset.objects.select_related("organization", "created_by", "updated_by")
         .annotate(
             row_count=Count("rows"),
             last_activity=Coalesce("last_opened_at", "updated_at"),
+            field_count=Coalesce(Subquery(_field_count), 0),
+            has_report=Exists(Report.objects.filter(dataset=OuterRef("pk"))),
         )
         .order_by("name")
     )

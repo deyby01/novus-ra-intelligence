@@ -12,6 +12,8 @@ class DatasetSerializer(serializers.ModelSerializer):
     """Serialize datasets, hiding the organization and authorship from writes."""
 
     row_count = serializers.SerializerMethodField()
+    field_count = serializers.SerializerMethodField()
+    has_report = serializers.SerializerMethodField()
 
     class Meta:
         model = Dataset
@@ -21,6 +23,8 @@ class DatasetSerializer(serializers.ModelSerializer):
             "description",
             "source",
             "row_count",
+            "field_count",
+            "has_report",
             "last_opened_at",
             "created_by",
             "updated_by",
@@ -45,6 +49,16 @@ class DatasetSerializer(serializers.ModelSerializer):
         """
         annotated = getattr(obj, "row_count", None)
         return annotated if annotated is not None else obj.rows.count()
+
+    def get_field_count(self, obj: Dataset) -> int:
+        """Return how many columns (fields) the dataset's schema defines."""
+        annotated = getattr(obj, "field_count", None)
+        return annotated if annotated is not None else obj.fields.count()
+
+    def get_has_report(self, obj: Dataset) -> bool:
+        """Whether the AI has produced at least one report for this dataset."""
+        annotated = getattr(obj, "has_report", None)
+        return annotated if annotated is not None else obj.reports.exists()
 
 
 class TenantScopedDatasetSerializer(serializers.ModelSerializer):

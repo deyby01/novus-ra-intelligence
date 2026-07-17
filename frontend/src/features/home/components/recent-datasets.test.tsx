@@ -16,6 +16,8 @@ function makeDataset(
     description: '',
     source: 'excel',
     row_count: 0,
+    field_count: 0,
+    has_report: false,
     last_opened_at: null,
     created_by: null,
     updated_by: null,

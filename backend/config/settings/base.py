@@ -121,6 +121,7 @@ REST_FRAMEWORK = {
         "password_reset": "5/hour",
         "reports_generate": "30/hour",
         "reports_pdf": "120/hour",
+        "dashboards_generate": "30/hour",
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,

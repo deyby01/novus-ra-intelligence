@@ -4,8 +4,11 @@ import { useWorkspaceStore } from '@/features/organizations/store'
 import {
   createDashboard,
   deleteDashboard,
+  duplicateDashboard,
+  generateDashboard,
   getDashboard,
   getDashboards,
+  updateDashboard,
 } from './api'
 
 /**
@@ -60,12 +63,34 @@ export function useDashboardMutations() {
     mutationFn: (input: { name: string }) => createDashboard(input),
     onSuccess: () => void invalidate(),
   })
+  const update = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      updateDashboard(id, { name }),
+    onSuccess: () => void invalidate(),
+  })
+  const duplicate = useMutation({
+    mutationFn: (id: string) => duplicateDashboard(id),
+    onSuccess: () => void invalidate(),
+  })
   const remove = useMutation({
     mutationFn: (id: string) => deleteDashboard(id),
     onSuccess: () => void invalidate(),
   })
 
-  return { create, remove }
+  return { create, update, duplicate, remove }
+}
+
+/** Generate a dashboard from a dataset with the AI; refreshes the list. */
+export function useGenerateDashboard() {
+  const queryClient = useQueryClient()
+  const organizationId = useOrganizationId()
+  return useMutation({
+    mutationFn: (datasetId: string) => generateDashboard(datasetId),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({
+        queryKey: ['dashboards', organizationId],
+      }),
+  })
 }
 
 import {

@@ -9,6 +9,10 @@ class Dashboard(TenantBaseModel, AuthoredModel):
     """A tenant-owned canvas that groups widgets over the tenant's datasets."""
 
     name = models.CharField(max_length=255)
+    description = models.TextField(
+        blank=True,
+        help_text="Optional summary; the AI writes one when it generates the dashboard.",
+    )
 
     class Meta:
         ordering = ["name"]

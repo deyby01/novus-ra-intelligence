@@ -3,6 +3,8 @@ export type ChartType = 'line' | 'bar' | 'pie' | 'kpi' | 'table'
 export interface Dashboard {
   id: string
   name: string
+  /** Optional summary; the AI writes one when it generates the dashboard. */
+  description: string
   /** Chart types of the dashboard's widgets, in order — drives the card preview. */
   widget_types: ChartType[]
   /** Distinct dataset ids the dashboard's widgets connect to. */

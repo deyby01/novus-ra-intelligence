@@ -17,6 +17,7 @@ class DashboardSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "description",
             "widget_types",
             "dataset_ids",
             "created_by",

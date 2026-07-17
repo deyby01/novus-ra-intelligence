@@ -13,6 +13,7 @@ function makeDashboard(
   overrides: Partial<Dashboard> & Pick<Dashboard, 'id' | 'name'>,
 ): Dashboard {
   return {
+    description: '',
     widget_types: [],
     dataset_ids: [],
     created_by: null,
@@ -168,14 +169,24 @@ describe('DashboardsPage', () => {
     expect(onPost).toHaveBeenCalledWith({ name: 'Q4 Goals' })
   })
 
-  it('explains that AI generation is coming soon', async () => {
+  it('opens the AI generation dialog with a dataset picker', async () => {
     stubDashboards([])
+    server.use(
+      http.get('*/datasets/', () =>
+        HttpResponse.json(
+          page([{ id: 'ds1', name: 'Ventas', row_count: 5, field_count: 2 }]),
+        ),
+      ),
+    )
     renderWithProviders(<DashboardsPage />)
 
     await userEvent.click(
       (await screen.findAllByRole('button', { name: /generar con ia/i }))[0],
     )
 
-    expect(await screen.findByText(/próximamente/i)).toBeInTheDocument()
+    expect(await screen.findByText('Ventas')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /generar dashboard/i }),
+    ).toBeInTheDocument()
   })
 })

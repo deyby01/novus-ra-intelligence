@@ -17,6 +17,7 @@ import {
 import { useDashboardMutations } from '../hooks'
 import type { Dashboard } from '../types'
 import { DashboardPreview } from './dashboard-preview'
+import { RenameDashboardDialog } from './rename-dashboard-dialog'
 
 const MONTHS_ES = [
   'ene',
@@ -41,8 +42,9 @@ function formatDate(iso: string): string {
 
 /** A dashboard in the grid: a widget-type preview plus name, date, and meta. */
 export function DashboardCard({ dashboard }: { dashboard: Dashboard }) {
-  const { remove } = useDashboardMutations()
+  const { remove, duplicate } = useDashboardMutations()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
   const to = `/dashboards/${dashboard.id}`
   const widgetCount = dashboard.widget_types.length
   const datasetCount = dashboard.dataset_ids.length
@@ -78,8 +80,15 @@ export function DashboardCard({ dashboard }: { dashboard: Dashboard }) {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem disabled>Renombrar (pronto)</DropdownMenuItem>
-              <DropdownMenuItem disabled>Duplicar (pronto)</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+                Renombrar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={duplicate.isPending}
+                onSelect={() => duplicate.mutate(dashboard.id)}
+              >
+                Duplicar
+              </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
                 onSelect={() => setConfirmOpen(true)}
@@ -101,6 +110,13 @@ export function DashboardCard({ dashboard }: { dashboard: Dashboard }) {
           </span>
         </div>
       </div>
+
+      <RenameDashboardDialog
+        id={dashboard.id}
+        currentName={dashboard.name}
+        open={renameOpen}
+        onOpenChange={setRenameOpen}
+      />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-sm">

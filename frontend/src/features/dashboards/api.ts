@@ -26,6 +26,31 @@ export async function createDashboard(
   return data
 }
 
+/** Rename (or otherwise patch) a dashboard. */
+export async function updateDashboard(
+  id: string,
+  input: Partial<CreateDashboardInput>,
+): Promise<Dashboard> {
+  const { data } = await apiClient.patch<Dashboard>(`/dashboards/${id}/`, input)
+  return data
+}
+
+/** Duplicate a dashboard and all its widgets; returns the new dashboard. */
+export async function duplicateDashboard(id: string): Promise<Dashboard> {
+  const { data } = await apiClient.post<Dashboard>(
+    `/dashboards/${id}/duplicate/`,
+  )
+  return data
+}
+
+/** Generate a dashboard from a dataset (AI names it); returns the new dashboard. */
+export async function generateDashboard(datasetId: string): Promise<Dashboard> {
+  const { data } = await apiClient.post<Dashboard>('/dashboards/generate/', {
+    dataset: datasetId,
+  })
+  return data
+}
+
 /** Delete a dashboard. */
 export async function deleteDashboard(id: string): Promise<void> {
   await apiClient.delete(`/dashboards/${id}/`)

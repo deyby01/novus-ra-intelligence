@@ -13,6 +13,9 @@ function makeDashboard(
   overrides: Partial<Dashboard> & Pick<Dashboard, 'id' | 'name'>,
 ): Dashboard {
   return {
+    description: '',
+    widget_types: [],
+    dataset_ids: [],
     created_by: null,
     updated_by: null,
     created_at: '2026-07-08T00:00:00Z',
@@ -25,6 +28,12 @@ function page<T>(results: T[]) {
   return { count: results.length, next: null, previous: null, results }
 }
 
+function stubDashboards(dashboards: Dashboard[]) {
+  server.use(
+    http.get('*/dashboards/', () => HttpResponse.json(page(dashboards))),
+  )
+}
+
 describe('DashboardsPage', () => {
   beforeEach(() => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
@@ -32,27 +41,78 @@ describe('DashboardsPage', () => {
   })
 
   it('renders the dashboards returned by the API', async () => {
-    server.use(
-      http.get('*/dashboards/', () =>
-        HttpResponse.json(
-          page([
-            makeDashboard({ id: 'd1', name: 'Revenue' }),
-            makeDashboard({ id: 'd2', name: 'Pipeline' }),
-          ]),
-        ),
-      ),
-    )
+    stubDashboards([
+      makeDashboard({ id: 'd1', name: 'Revenue' }),
+      makeDashboard({ id: 'd2', name: 'Pipeline' }),
+    ])
     renderWithProviders(<DashboardsPage />)
 
     expect(await screen.findByText('Revenue')).toBeInTheDocument()
     expect(screen.getByText('Pipeline')).toBeInTheDocument()
   })
 
-  it('shows an empty state when there are no dashboards', async () => {
-    server.use(http.get('*/dashboards/', () => HttpResponse.json(page([]))))
+  it('shows each dashboard widget + dataset counts from real widget types', async () => {
+    stubDashboards([
+      makeDashboard({
+        id: 'd1',
+        name: 'Revenue',
+        widget_types: ['kpi', 'bar', 'line'],
+        dataset_ids: ['x', 'y'],
+      }),
+    ])
     renderWithProviders(<DashboardsPage />)
 
-    expect(await screen.findByText(/no dashboards yet/i)).toBeInTheDocument()
+    await screen.findByText('Revenue')
+    expect(screen.getByText('3 widgets')).toBeInTheDocument()
+    expect(screen.getByText('2 datasets')).toBeInTheDocument()
+  })
+
+  it('summarises the workspace in the KPI strip', async () => {
+    stubDashboards([
+      makeDashboard({
+        id: 'd1',
+        name: 'A',
+        widget_types: ['kpi', 'bar'],
+        dataset_ids: ['x', 'y'],
+      }),
+      makeDashboard({
+        id: 'd2',
+        name: 'B',
+        widget_types: ['line'],
+        dataset_ids: ['y', 'z'],
+      }),
+    ])
+    renderWithProviders(<DashboardsPage />)
+
+    await screen.findByText('A')
+    expect(screen.getByText('Widgets totales')).toBeInTheDocument()
+    expect(screen.getByText('Datasets conectados')).toBeInTheDocument()
+  })
+
+  it('filters the grid by the search query', async () => {
+    stubDashboards([
+      makeDashboard({ id: 'd1', name: 'Revenue' }),
+      makeDashboard({ id: 'd2', name: 'Pipeline' }),
+    ])
+    renderWithProviders(<DashboardsPage />)
+
+    await screen.findByText('Revenue')
+    await userEvent.type(
+      screen.getByPlaceholderText(/buscar dashboards/i),
+      'pipe',
+    )
+
+    expect(screen.getByText('Pipeline')).toBeInTheDocument()
+    expect(screen.queryByText('Revenue')).not.toBeInTheDocument()
+  })
+
+  it('shows an empty state when there are no dashboards', async () => {
+    stubDashboards([])
+    renderWithProviders(<DashboardsPage />)
+
+    expect(
+      await screen.findByText(/aún no hay dashboards/i),
+    ).toBeInTheDocument()
   })
 
   it('shows an error state when the request fails', async () => {
@@ -62,7 +122,7 @@ describe('DashboardsPage', () => {
     renderWithProviders(<DashboardsPage />)
 
     expect(
-      await screen.findByText(/couldn't load your dashboards/i),
+      await screen.findByText(/no pudimos cargar tus dashboards/i),
     ).toBeInTheDocument()
   })
 
@@ -87,30 +147,46 @@ describe('DashboardsPage', () => {
     expect(screen.queryByText('Only in Alpha')).not.toBeInTheDocument()
   })
 
-  it('creates a dashboard and shows it after the list refetches', async () => {
-    let created = false
+  it('creates a blank dashboard from the dialog', async () => {
     const onPost = vi.fn()
+    stubDashboards([])
     server.use(
-      http.get('*/dashboards/', () =>
-        HttpResponse.json(
-          page(created ? [makeDashboard({ id: 'd1', name: 'Q4 Goals' })] : []),
-        ),
-      ),
       http.post('*/dashboards/', async ({ request }) => {
         onPost(await request.json())
-        created = true
         return HttpResponse.json(makeDashboard({ id: 'd1', name: 'Q4 Goals' }))
       }),
     )
     renderWithProviders(<DashboardsPage />)
 
     await userEvent.click(
-      await screen.findByRole('button', { name: /new dashboard/i }),
+      (await screen.findAllByRole('button', { name: /nuevo dashboard/i }))[0],
     )
-    await userEvent.type(screen.getByLabelText(/name/i), 'Q4 Goals')
-    await userEvent.click(screen.getByRole('button', { name: /^create$/i }))
+    await userEvent.type(screen.getByLabelText(/nombre/i), 'Q4 Goals')
+    await userEvent.click(
+      screen.getByRole('button', { name: /crear dashboard/i }),
+    )
 
-    expect(await screen.findByText('Q4 Goals')).toBeInTheDocument()
     expect(onPost).toHaveBeenCalledWith({ name: 'Q4 Goals' })
+  })
+
+  it('opens the AI generation dialog with a dataset picker', async () => {
+    stubDashboards([])
+    server.use(
+      http.get('*/datasets/', () =>
+        HttpResponse.json(
+          page([{ id: 'ds1', name: 'Ventas', row_count: 5, field_count: 2 }]),
+        ),
+      ),
+    )
+    renderWithProviders(<DashboardsPage />)
+
+    await userEvent.click(
+      (await screen.findAllByRole('button', { name: /generar con ia/i }))[0],
+    )
+
+    expect(await screen.findByText('Ventas')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /generar dashboard/i }),
+    ).toBeInTheDocument()
   })
 })

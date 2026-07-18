@@ -53,9 +53,16 @@ export function DashboardDetailPage() {
       {!isPending && !isError && dashboard && (
         <>
           <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              {dashboard.name}
-            </h1>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                {dashboard.name}
+              </h1>
+              {dashboard.description && (
+                <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+                  {dashboard.description}
+                </p>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={() => setIsAddingWidget(true)}>
                 <Plus className="mr-2 h-4 w-4" />

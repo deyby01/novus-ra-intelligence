@@ -48,6 +48,8 @@ export interface AggregationQuery {
   agg: AggregationFunction
   metric?: string
   group_by?: string
+  /** Group a date `group_by` field by its "YYYY-MM" prefix (for a trend). */
+  bucket?: 'month'
 }
 
 export interface AggregationResultEntry {

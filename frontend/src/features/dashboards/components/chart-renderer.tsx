@@ -1,11 +1,11 @@
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -13,18 +13,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { BLUE_RAMP, CATEGORICAL, CHART_GREY, DATA } from '../chart-colors'
 import type { AggregationResult, Widget, WidgetSize } from '../types'
-
-const COLORS = [
-  '#2563eb',
-  '#16a34a',
-  '#d97706',
-  '#dc2626',
-  '#9333ea',
-  '#0891b2',
-  '#e11d48',
-  '#65a30d',
-]
 
 /** Chart height varies by widget size. */
 export function chartHeight(size?: WidgetSize): number {
@@ -37,6 +27,15 @@ export function chartHeight(size?: WidgetSize): number {
       return 250
   }
 }
+
+const tooltipStyle = {
+  borderRadius: '10px',
+  border: '1px solid #e4e4e7',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+  fontSize: '12px',
+}
+
+const axisTick = { fill: CHART_GREY.axisLabel, fontSize: 12 }
 
 /** Render an aggregation result as the requested chart type. */
 export function ChartRenderer({
@@ -55,8 +54,8 @@ export function ChartRenderer({
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        No data
+      <div className="text-g400 flex h-full items-center justify-center text-sm">
+        Sin datos
       </div>
     )
   }
@@ -64,7 +63,7 @@ export function ChartRenderer({
   if (type === 'kpi') {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-1">
-        <div className="text-4xl font-bold tracking-tighter sm:text-5xl">
+        <div className="font-display text-g900 text-4xl font-semibold tracking-tight sm:text-5xl">
           {chartData[0]?.value?.toLocaleString() ?? '-'}
         </div>
       </div>
@@ -74,22 +73,24 @@ export function ChartRenderer({
   if (type === 'table') {
     return (
       <div className="h-full w-full overflow-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-[12.5px]">
           <thead>
-            <tr className="border-b">
-              <th className="p-2 text-left font-medium">
-                {data.group_by || 'Group'}
+            <tr className="border-g150 border-b">
+              <th className="text-g400 px-2 py-2 text-left text-[10px] font-semibold tracking-[0.05em] uppercase">
+                {data.group_by || 'Grupo'}
               </th>
-              <th className="p-2 text-right font-medium text-muted-foreground">
-                Value
+              <th className="text-g400 px-2 py-2 text-right text-[10px] font-semibold tracking-[0.05em] uppercase">
+                Valor
               </th>
             </tr>
           </thead>
           <tbody>
             {chartData.map((row, i) => (
-              <tr key={i} className="border-b last:border-0 hover:bg-muted/50">
-                <td className="p-2">{row.name}</td>
-                <td className="p-2 text-right font-medium">
+              <tr key={i} className="border-g150 border-b last:border-0">
+                <td className="text-g700 px-2 py-2.5 font-medium">
+                  {row.name}
+                </td>
+                <td className="font-display text-g900 px-2 py-2.5 text-right font-semibold">
                   {row.value.toLocaleString()}
                 </td>
               </tr>
@@ -110,18 +111,14 @@ export function ChartRenderer({
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Tooltip
-            contentStyle={{
-              borderRadius: '8px',
-              border: 'none',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-            }}
-            itemStyle={{ color: '#000' }}
+            contentStyle={tooltipStyle}
+            itemStyle={{ color: '#18181b' }}
           />
           <Legend
             layout={size === 'small' ? 'horizontal' : 'vertical'}
             verticalAlign={size === 'small' ? 'bottom' : 'middle'}
             align={size === 'small' ? 'center' : 'right'}
-            wrapperStyle={{ fontSize: '12px' }}
+            wrapperStyle={{ fontSize: '12px', color: '#52525b' }}
           />
           <Pie
             data={chartData}
@@ -135,7 +132,7 @@ export function ChartRenderer({
             {chartData.map((_, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={COLORS[index % COLORS.length]}
+                fill={CATEGORICAL[index % CATEGORICAL.length]}
               />
             ))}
           </Pie>
@@ -145,6 +142,15 @@ export function ChartRenderer({
   }
 
   if (type === 'bar') {
+    // Emphasis by rank: the tallest bar takes the strongest blue, the rest fade.
+    const rankByIndex = new Map<number, number>()
+    chartData
+      .map((d, i) => ({ i, v: d.value }))
+      .sort((a, b) => b.v - a.v)
+      .forEach((entry, rank) => rankByIndex.set(entry.i, rank))
+    const barColor = (index: number) =>
+      BLUE_RAMP[Math.min(rankByIndex.get(index) ?? 0, BLUE_RAMP.length - 1)]
+
     return (
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
@@ -154,11 +160,11 @@ export function ChartRenderer({
           <CartesianGrid
             strokeDasharray="3 3"
             vertical={false}
-            stroke="#e5e7eb"
+            stroke={CHART_GREY.grid}
           />
           <XAxis
             dataKey="name"
-            fontSize={12}
+            tick={axisTick}
             tickLine={false}
             axisLine={false}
             angle={needsRotation ? -35 : 0}
@@ -166,16 +172,16 @@ export function ChartRenderer({
             minTickGap={15}
             interval="preserveStartEnd"
           />
-          <YAxis fontSize={12} tickLine={false} axisLine={false} width={50} />
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={50} />
           <Tooltip
-            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-            contentStyle={{
-              borderRadius: '8px',
-              border: 'none',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-            }}
+            cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+            contentStyle={tooltipStyle}
           />
-          <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+            {chartData.map((_, index) => (
+              <Cell key={`bar-${index}`} fill={barColor(index)} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     )
@@ -184,18 +190,18 @@ export function ChartRenderer({
   if (type === 'line') {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
+        <AreaChart
           data={chartData}
           margin={{ top: 10, right: 10, left: 0, bottom: bottomMargin }}
         >
           <CartesianGrid
             strokeDasharray="3 3"
             vertical={false}
-            stroke="#e5e7eb"
+            stroke={CHART_GREY.grid}
           />
           <XAxis
             dataKey="name"
-            fontSize={12}
+            tick={axisTick}
             tickLine={false}
             axisLine={false}
             angle={needsRotation ? -35 : 0}
@@ -203,28 +209,22 @@ export function ChartRenderer({
             minTickGap={15}
             interval="preserveStartEnd"
           />
-          <YAxis fontSize={12} tickLine={false} axisLine={false} width={50} />
-          <Tooltip
-            contentStyle={{
-              borderRadius: '8px',
-              border: 'none',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-            }}
-          />
-          <Line
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={50} />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Area
             type="monotone"
             dataKey="value"
-            stroke="#2563eb"
-            strokeWidth={2}
-            dot={{ r: 4, strokeWidth: 2 }}
-            activeDot={{ r: 6 }}
+            stroke={DATA.blue}
+            strokeWidth={2.5}
+            fill={DATA.areaFill}
+            fillOpacity={1}
+            dot={false}
+            activeDot={{ r: 5, strokeWidth: 0 }}
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     )
   }
 
-  return (
-    <div className="text-sm text-muted-foreground">Unsupported chart type</div>
-  )
+  return <div className="text-g400 text-sm">Tipo de gráfico no soportado</div>
 }

@@ -57,13 +57,13 @@ describe('DashboardDetailPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the "No widgets yet" placeholder', async () => {
+  it('shows the empty-widgets placeholder', async () => {
     server.use(
       http.get('*/dashboards/dash-1/', () => HttpResponse.json(DASHBOARD)),
     )
     renderDetail()
 
-    expect(await screen.findByText(/no widgets yet/i)).toBeInTheDocument()
+    expect(await screen.findByText(/aún no hay widgets/i)).toBeInTheDocument()
   })
 
   it('shows an error state when the request fails', async () => {
@@ -76,11 +76,28 @@ describe('DashboardDetailPage', () => {
     renderDetail()
 
     expect(
-      await screen.findByText(/couldn't load this dashboard/i),
+      await screen.findByText(/no pudimos cargar este dashboard/i),
     ).toBeInTheDocument()
   })
 
-  it('deletes the dashboard after confirming', async () => {
+  it('shows the AI insight panel when the dashboard has a description', async () => {
+    server.use(
+      http.get('*/dashboards/dash-1/', () =>
+        HttpResponse.json({
+          ...DASHBOARD,
+          description: 'Mayo fue el mejor mes del trimestre.',
+        }),
+      ),
+    )
+    renderDetail()
+
+    expect(await screen.findByText(/insight de la ia/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/mayo fue el mejor mes del trimestre/i),
+    ).toBeInTheDocument()
+  })
+
+  it('deletes the dashboard after confirming from the menu', async () => {
     const onDelete = vi.fn()
     server.use(
       http.get('*/dashboards/dash-1/', () => HttpResponse.json(DASHBOARD)),
@@ -92,11 +109,10 @@ describe('DashboardDetailPage', () => {
     renderDetail()
 
     await userEvent.click(
-      await screen.findByRole('button', { name: /delete dashboard/i }),
+      await screen.findByRole('button', { name: /acciones del dashboard/i }),
     )
-    await userEvent.click(
-      screen.getByRole('button', { name: /confirm delete/i }),
-    )
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Eliminar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Eliminar' }))
 
     expect(onDelete).toHaveBeenCalledTimes(1)
   })

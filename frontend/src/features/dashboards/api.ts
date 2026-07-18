@@ -104,6 +104,7 @@ export async function getDatasetAggregation(
   params.append('agg', query.agg)
   if (query.metric) params.append('metric', query.metric)
   if (query.group_by) params.append('group_by', query.group_by)
+  if (query.bucket) params.append('bucket', query.bucket)
 
   const { data } = await apiClient.get<AggregationResult>(
     `/datasets/${query.datasetId}/aggregate/?${params.toString()}`,

@@ -76,6 +76,7 @@ class DatasetViewSet(
             aggregation=params["agg"],
             metric_key=params.get("metric"),
             group_by_key=params.get("group_by"),
+            bucket=params.get("bucket"),
         )
         return Response(
             {

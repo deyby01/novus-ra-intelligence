@@ -93,6 +93,7 @@ export function useGenerateDashboard() {
   })
 }
 
+import { useDatasetFields } from '@/features/datasets/hooks'
 import {
   createWidget,
   deleteWidget,
@@ -100,7 +101,7 @@ import {
   getWidgets,
   updateWidget,
 } from './api'
-import type { AggregationQuery } from './types'
+import type { AggregationQuery, Widget } from './types'
 
 export function useWidgets(dashboardId: string) {
   const organizationId = useOrganizationId()
@@ -139,8 +140,12 @@ export function useWidgetMutations(dashboardId: string) {
   return { create, update, remove }
 }
 
-export function useDatasetAggregation(query: AggregationQuery) {
+export function useDatasetAggregation(
+  query: AggregationQuery,
+  options?: { enabled?: boolean },
+) {
   const organizationId = useOrganizationId()
+  const tenantEnabled = useTenantQueryEnabled(query.datasetId)
   return useQuery({
     queryKey: [
       'aggregation',
@@ -149,8 +154,31 @@ export function useDatasetAggregation(query: AggregationQuery) {
       query.agg,
       query.metric,
       query.group_by,
+      query.bucket,
     ],
     queryFn: () => getDatasetAggregation(query),
-    enabled: useTenantQueryEnabled(query.datasetId),
+    enabled: tenantEnabled && (options?.enabled ?? true),
   })
+}
+
+/**
+ * A KPI's measure bucketed by month, for a sparkline — but only when the
+ * dataset has a date field to trend over. When it has none the query stays
+ * disabled and `hasTrend` is false, so the caller renders just the number.
+ */
+export function useKpiTrend(widget: Widget) {
+  const { data: fields } = useDatasetFields(widget.dataset)
+  const dateField = fields?.find((field) => field.field_type === 'date')
+  const enabled = Boolean(dateField) && Boolean(widget.config.agg)
+  const query = useDatasetAggregation(
+    {
+      datasetId: widget.dataset,
+      agg: widget.config.agg,
+      metric: widget.config.metric,
+      group_by: dateField?.key,
+      bucket: 'month',
+    },
+    { enabled },
+  )
+  return { hasTrend: enabled, ...query }
 }

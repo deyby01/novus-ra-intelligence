@@ -33,3 +33,52 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
   const days = Math.floor(hours / 24)
   return `hace ${days} d`
 }
+
+/** The resizable widget grid: 6 columns, fixed row unit, gap (all in px). */
+export const GRID_COLUMNS = 6
+export const GRID_ROW_PX = 30
+export const GRID_GAP_PX = 14
+/** Height clamp, in row units, so a widget can't collapse or grow unbounded. */
+export const MIN_ROWS = 3
+export const MAX_ROWS = 20
+
+export interface WidgetSpan {
+  w: number
+  h: number
+}
+
+export function clampSpan(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(value)))
+}
+
+/** A widget's default span when it has never been resized (from its size). */
+function defaultSpan(widget: Widget): WidgetSpan {
+  if (widget.chart_type === 'kpi') return { w: 2, h: 4 }
+  switch (widget.config.size) {
+    case 'large':
+      return { w: 6, h: 9 }
+    case 'medium':
+      return { w: 3, h: 8 }
+    default:
+      return { w: 2, h: 6 }
+  }
+}
+
+/**
+ * A widget's grid span: its persisted `position` when it's been resized, else a
+ * sensible default derived from its size. Column width is capped to the grid.
+ */
+export function widgetSpan(widget: Widget): WidgetSpan {
+  const position = widget.position
+  if (
+    position &&
+    typeof position.w === 'number' &&
+    typeof position.h === 'number'
+  ) {
+    return {
+      w: clampSpan(position.w, 1, GRID_COLUMNS),
+      h: clampSpan(position.h, MIN_ROWS, MAX_ROWS),
+    }
+  }
+  return defaultSpan(widget)
+}

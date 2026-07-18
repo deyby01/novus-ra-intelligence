@@ -1,13 +1,15 @@
 import {
   ArrowLeft,
+  Check,
   LayoutGrid,
   Loader2,
+  Maximize2,
   MoreVertical,
   Pencil,
   Plus,
   Sparkles,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Dialog,
@@ -24,28 +26,53 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { AddWidgetModal } from '../components/add-widget-modal'
 import { RenameDashboardDialog } from '../components/rename-dashboard-dialog'
-import { WidgetCard } from '../components/widget-card'
-import { useDashboard, useDashboardMutations, useWidgets } from '../hooks'
-import { relativeTime, sizeToColSpan } from '../utils'
+import { ShareButton } from '../components/share-button'
+import { SuggestWidgetDialog } from '../components/suggest-widget-dialog'
+import { WidgetGridItem } from '../components/widget-grid-item'
+import {
+  useDashboard,
+  useDashboardMutations,
+  useResizeWidget,
+  useWidgets,
+} from '../hooks'
+import { GRID_COLUMNS, GRID_GAP_PX, GRID_ROW_PX, relativeTime } from '../utils'
 
-/** A dashed tile inviting the user to add a widget. */
-function AddWidgetTile({ onClick }: { onClick: () => void }) {
+/** The dashed tile below the grid: add a widget by hand or let the AI suggest. */
+function AddWidgetTile({
+  dashboardId,
+  onAdd,
+}: {
+  dashboardId: string
+  onAdd: () => void
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="border-g300 hover:border-g400 hover:bg-g50 flex w-full items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed bg-white p-4 transition-colors"
-    >
+    <div className="border-g300 flex flex-wrap items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed bg-white p-4">
       <span className="bg-g100 text-g700 grid size-[34px] place-items-center rounded-[10px]">
         <Plus className="size-[17px]" strokeWidth={1.5} />
       </span>
-      <span className="font-display text-g900 text-[14px] font-semibold">
-        Añadir widget
+      <span className="text-g500 hidden text-[12.5px] sm:inline">
+        Añade un gráfico, KPI o tabla — o deja que la IA sugiera
       </span>
-      <span className="text-g500 hidden text-[12px] sm:inline">
-        gráfico, KPI o tabla de un dataset
-      </span>
-    </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="bg-g900 font-display hover:bg-g800 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[12.5px] font-semibold text-white transition-colors"
+        >
+          <Plus className="size-[14px]" strokeWidth={1.5} />
+          Añadir widget
+        </button>
+        <SuggestWidgetDialog dashboardId={dashboardId}>
+          <button
+            type="button"
+            className="bg-g100 text-g700 font-display hover:bg-g150 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[12.5px] font-semibold transition-colors"
+          >
+            <Sparkles className="size-[14px]" strokeWidth={1.5} />
+            Sugerir con IA
+          </button>
+        </SuggestWidgetDialog>
+      </div>
+    </div>
   )
 }
 
@@ -59,14 +86,19 @@ export function DashboardDetailPage() {
     isPending: widgetsPending,
     isError: widgetsError,
   } = useWidgets(dashboardId)
+  const resizeWidget = useResizeWidget(dashboardId)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const [isAddingWidget, setIsAddingWidget] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const handleDelete = () => {
     remove.mutate(dashboardId, { onSuccess: () => navigate('/dashboards') })
   }
+
+  const hasWidgets = Boolean(widgets && widgets.length > 0)
 
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-7 pb-[34px] pt-[22px]">
@@ -112,7 +144,31 @@ export function DashboardDetailPage() {
               </span>
             </div>
 
-            <div className="ml-auto flex items-center gap-2.5">
+            <div className="ml-auto flex flex-wrap items-center gap-2.5">
+              <ShareButton />
+              {hasWidgets && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing((value) => !value)}
+                  className={`font-display inline-flex items-center gap-1.5 rounded-[11px] px-[14px] py-[9px] text-[12.5px] font-semibold transition-colors ${
+                    isEditing
+                      ? 'bg-g900 hover:bg-g800 text-white'
+                      : 'border-g200 text-g700 hover:bg-g100 border bg-white'
+                  }`}
+                >
+                  {isEditing ? (
+                    <>
+                      <Check className="size-[14px]" strokeWidth={1.5} />
+                      Listo
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="size-[14px]" strokeWidth={1.5} />
+                      Editar
+                    </>
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setIsAddingWidget(true)}
@@ -206,31 +262,62 @@ export function DashboardDetailPage() {
               <p className="text-g500 max-w-sm text-sm">
                 Añade widgets para visualizar los datos de este workspace.
               </p>
-              <button
-                type="button"
-                onClick={() => setIsAddingWidget(true)}
-                className="bg-g900 font-display hover:bg-g800 mt-1 inline-flex items-center gap-1.5 rounded-[11px] px-4 py-2 text-[13px] font-semibold text-white transition-colors"
-              >
-                <Plus className="size-4" strokeWidth={1.5} />
-                Añadir widget
-              </button>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingWidget(true)}
+                  className="bg-g900 font-display hover:bg-g800 inline-flex items-center gap-1.5 rounded-[11px] px-4 py-2 text-[13px] font-semibold text-white transition-colors"
+                >
+                  <Plus className="size-4" strokeWidth={1.5} />
+                  Añadir widget
+                </button>
+                <SuggestWidgetDialog dashboardId={dashboardId}>
+                  <button
+                    type="button"
+                    className="border-g200 text-g700 font-display hover:bg-g100 inline-flex items-center gap-1.5 rounded-[11px] border bg-white px-4 py-2 text-[13px] font-semibold transition-colors"
+                  >
+                    <Sparkles className="size-4" strokeWidth={1.5} />
+                    Sugerir con IA
+                  </button>
+                </SuggestWidgetDialog>
+              </div>
             </div>
           )}
 
-          {widgets && widgets.length > 0 && (
-            <div className="grid grid-cols-6 gap-4">
-              {widgets.map((widget) => (
-                <div
-                  key={widget.id}
-                  className={sizeToColSpan(widget.config.size)}
-                >
-                  <WidgetCard widget={widget} />
+          {hasWidgets && (
+            <>
+              {isEditing && (
+                <div className="border-g200 bg-g50 text-g600 flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[12.5px]">
+                  <Maximize2 className="size-3.5 shrink-0" strokeWidth={1.5} />
+                  Arrastra la esquina inferior derecha de un widget para cambiar
+                  su tamaño.
                 </div>
-              ))}
-              <div className="col-span-6">
-                <AddWidgetTile onClick={() => setIsAddingWidget(true)} />
+              )}
+              <div
+                ref={gridRef}
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
+                  gridAutoRows: `${GRID_ROW_PX}px`,
+                  gap: `${GRID_GAP_PX}px`,
+                  gridAutoFlow: 'row dense',
+                }}
+              >
+                {widgets?.map((widget) => (
+                  <WidgetGridItem
+                    key={widget.id}
+                    widget={widget}
+                    editing={isEditing}
+                    gridRef={gridRef}
+                    onResize={resizeWidget}
+                  />
+                ))}
               </div>
-            </div>
+              <AddWidgetTile
+                dashboardId={dashboardId}
+                onAdd={() => setIsAddingWidget(true)}
+              />
+            </>
           )}
 
           <AddWidgetModal

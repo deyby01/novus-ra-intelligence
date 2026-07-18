@@ -97,6 +97,54 @@ describe('DashboardDetailPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('reveals a resize handle for each widget in edit mode', async () => {
+    server.use(
+      http.get('*/dashboards/dash-1/', () => HttpResponse.json(DASHBOARD)),
+      http.get('*/widgets/', () =>
+        HttpResponse.json({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              id: 'w1',
+              dashboard: 'dash-1',
+              dataset: 'ds1',
+              chart_type: 'kpi',
+              config: { agg: 'count', size: 'small' },
+              position: null,
+              created_at: '2026-07-08T00:00:00Z',
+              updated_at: '2026-07-08T00:00:00Z',
+            },
+          ],
+        }),
+      ),
+      http.get('*/dataset-fields/', () =>
+        HttpResponse.json({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        }),
+      ),
+      http.get('*/datasets/ds1/aggregate/', () =>
+        HttpResponse.json({
+          aggregation: 'count',
+          metric: null,
+          group_by: null,
+          results: [{ group: null, value: 5 }],
+        }),
+      ),
+    )
+    renderDetail()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+
+    expect(
+      await screen.findByRole('button', { name: /redimensionar widget/i }),
+    ).toBeInTheDocument()
+  })
+
   it('deletes the dashboard after confirming from the menu', async () => {
     const onDelete = vi.fn()
     server.use(

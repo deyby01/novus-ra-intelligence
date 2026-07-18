@@ -140,6 +140,28 @@ export function useWidgetMutations(dashboardId: string) {
   return { create, update, remove }
 }
 
+/**
+ * Persist a widget's new grid span. Updates the widgets cache optimistically so
+ * the card holds its new size the instant the drag ends, then PATCHes the
+ * position; the mutation's invalidation reconciles with the server.
+ */
+export function useResizeWidget(dashboardId: string) {
+  const queryClient = useQueryClient()
+  const organizationId = useOrganizationId()
+  const { update } = useWidgetMutations(dashboardId)
+  return (widget: Widget, span: { w: number; h: number }) => {
+    const position = { ...(widget.position ?? {}), ...span }
+    queryClient.setQueryData<Widget[]>(
+      ['widgets', organizationId, dashboardId],
+      (old) =>
+        old?.map((item) =>
+          item.id === widget.id ? { ...item, position } : item,
+        ),
+    )
+    update.mutate({ id: widget.id, position })
+  }
+}
+
 export function useDatasetAggregation(
   query: AggregationQuery,
   options?: { enabled?: boolean },

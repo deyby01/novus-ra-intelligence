@@ -1,5 +1,5 @@
+import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -17,31 +17,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useDatasets, useDatasetFields } from '@/features/datasets/hooks'
-import { useWidgetMutations } from '../hooks'
+import { useDatasetFields, useDatasets } from '@/features/datasets/hooks'
 import type { CreateWidgetInput } from '../api'
+import { useWidgetMutations } from '../hooks'
 import type { AggregationFunction, ChartType, WidgetSize } from '../types'
 
 const CHART_TYPES: { value: ChartType; label: string }[] = [
-  { value: 'kpi', label: 'KPI (Single Value)' },
-  { value: 'bar', label: 'Bar Chart' },
-  { value: 'line', label: 'Line Chart' },
-  { value: 'pie', label: 'Pie Chart' },
-  { value: 'table', label: 'Table' },
+  { value: 'kpi', label: 'KPI (valor único)' },
+  { value: 'bar', label: 'Barras' },
+  { value: 'line', label: 'Línea' },
+  { value: 'pie', label: 'Circular' },
+  { value: 'table', label: 'Tabla' },
 ]
 
 const AGG_FUNCTIONS: { value: AggregationFunction; label: string }[] = [
-  { value: 'count', label: 'Count (Rows)' },
-  { value: 'sum', label: 'Sum' },
-  { value: 'avg', label: 'Average' },
-  { value: 'min', label: 'Minimum' },
-  { value: 'max', label: 'Maximum' },
+  { value: 'count', label: 'Conteo (filas)' },
+  { value: 'sum', label: 'Suma' },
+  { value: 'avg', label: 'Promedio' },
+  { value: 'min', label: 'Mínimo' },
+  { value: 'max', label: 'Máximo' },
 ]
 
 const SIZE_OPTIONS: { value: WidgetSize; label: string }[] = [
-  { value: 'small', label: 'Small (1/3 width)' },
-  { value: 'medium', label: 'Medium (1/2 width)' },
-  { value: 'large', label: 'Large (Full width)' },
+  { value: 'small', label: 'Pequeño (1/3)' },
+  { value: 'medium', label: 'Mediano (1/2)' },
+  { value: 'large', label: 'Grande (ancho completo)' },
 ]
 
 interface Props {
@@ -114,18 +114,18 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
       <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Widget</DialogTitle>
+            <DialogTitle className="font-display">Añadir widget</DialogTitle>
             <DialogDescription>
-              Configure a new chart or metric to add to your dashboard.
+              Configura un nuevo gráfico o métrica para tu dashboard.
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">Title (Optional)</Label>
+              <Label htmlFor="title">Título (opcional)</Label>
               <Input
                 id="title"
-                placeholder="e.g. Total Sales, Revenue by Region…"
+                placeholder="Ej. Ventas totales, Ingresos por región…"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -135,7 +135,7 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
               <Label htmlFor="dataset">Dataset</Label>
               <Select value={datasetId} onValueChange={setDatasetId}>
                 <SelectTrigger id="dataset">
-                  <SelectValue placeholder="Select a dataset" />
+                  <SelectValue placeholder="Selecciona un dataset" />
                 </SelectTrigger>
                 <SelectContent>
                   {datasets?.map((d) => (
@@ -151,13 +151,13 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="chartType">Chart Type</Label>
+                    <Label htmlFor="chartType">Tipo de gráfico</Label>
                     <Select
                       value={chartType}
                       onValueChange={(val) => setChartType(val as ChartType)}
                     >
                       <SelectTrigger id="chartType">
-                        <SelectValue placeholder="Select type" />
+                        <SelectValue placeholder="Selecciona un tipo" />
                       </SelectTrigger>
                       <SelectContent>
                         {CHART_TYPES.map((t) => (
@@ -170,7 +170,7 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="size">Widget Size</Label>
+                    <Label htmlFor="size">Tamaño inicial</Label>
                     <Select
                       value={size}
                       onValueChange={(val) => setSize(val as WidgetSize)}
@@ -190,13 +190,13 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="agg">Aggregation</Label>
+                  <Label htmlFor="agg">Agregación</Label>
                   <Select
                     value={agg}
                     onValueChange={(val) => setAgg(val as AggregationFunction)}
                   >
                     <SelectTrigger id="agg">
-                      <SelectValue placeholder="Select an aggregation" />
+                      <SelectValue placeholder="Selecciona una agregación" />
                     </SelectTrigger>
                     <SelectContent>
                       {AGG_FUNCTIONS.map((a) => (
@@ -210,15 +210,15 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
 
                 {requiresMetric && (
                   <div className="grid gap-2">
-                    <Label htmlFor="metric">Metric (Numeric Field)</Label>
+                    <Label htmlFor="metric">Métrica (campo numérico)</Label>
                     <Select value={metric} onValueChange={setMetric}>
                       <SelectTrigger id="metric">
-                        <SelectValue placeholder="Select a numeric field" />
+                        <SelectValue placeholder="Selecciona un campo numérico" />
                       </SelectTrigger>
                       <SelectContent>
                         {numericFields.length === 0 ? (
                           <SelectItem value="none" disabled>
-                            No numeric fields available
+                            No hay campos numéricos
                           </SelectItem>
                         ) : (
                           numericFields.map((f) => (
@@ -233,13 +233,13 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
                 )}
 
                 <div className="grid gap-2">
-                  <Label htmlFor="groupBy">Group By (Optional)</Label>
+                  <Label htmlFor="groupBy">Agrupar por (opcional)</Label>
                   <Select value={groupBy} onValueChange={setGroupBy}>
                     <SelectTrigger id="groupBy">
-                      <SelectValue placeholder="No grouping" />
+                      <SelectValue placeholder="Sin agrupar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="none">Ninguno</SelectItem>
                       {fields?.map((f) => (
                         <SelectItem key={f.key} value={f.key}>
                           {f.label}
@@ -252,24 +252,31 @@ export function AddWidgetModal({ dashboardId, isOpen, onClose }: Props) {
             )}
 
             {create.isError && (
-              <p className="text-sm text-destructive">
-                Failed to create widget. Please check the configuration.
+              <p className="text-[12.5px] text-red-600">
+                No pudimos crear el widget. Revisa la configuración.
               </p>
             )}
           </div>
 
           <DialogFooter>
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={onClose}
               disabled={create.isPending}
+              className="text-g600 hover:bg-g100 rounded-[10px] px-4 py-2 text-[13.5px] font-semibold transition-colors disabled:opacity-60"
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!isFormValid || create.isPending}>
-              Add Widget
-            </Button>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={!isFormValid || create.isPending}
+              className="bg-g900 font-display hover:bg-g800 inline-flex items-center justify-center gap-1.5 rounded-[10px] px-4 py-2 text-[13.5px] font-semibold text-white transition-colors disabled:opacity-60"
+            >
+              {create.isPending && (
+                <Loader2 className="size-4 animate-spin" strokeWidth={1.5} />
+              )}
+              Añadir widget
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -2,7 +2,7 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { useDatasetAggregation, useWidgetMutations } from '../hooks'
 import type { Widget } from '../types'
 import { widgetTitle } from '../utils'
-import { ChartRenderer, chartHeight } from './chart-renderer'
+import { ChartRenderer } from './chart-renderer'
 import { KpiWidget } from './kpi-widget'
 import { WidgetMenu } from './widget-menu'
 
@@ -20,6 +20,7 @@ function ChartWidgetCard({ widget }: { widget: Widget }) {
       agg: widget.config.agg,
       metric: widget.config.metric,
       group_by: widget.config.group_by,
+      bucket: widget.config.bucket,
     },
     { enabled: configured },
   )
@@ -28,8 +29,6 @@ function ChartWidgetCard({ widget }: { widget: Widget }) {
   const handleDelete = () => {
     if (window.confirm('¿Eliminar este widget?')) remove.mutate(widget.id)
   }
-
-  const height = chartHeight(widget.config.size)
 
   return (
     <div className="border-g200 flex h-full flex-col rounded-2xl border bg-white p-5 sm:p-[21px]">
@@ -40,10 +39,7 @@ function ChartWidgetCard({ widget }: { widget: Widget }) {
         <WidgetMenu onDelete={handleDelete} disabled={remove.isPending} />
       </div>
 
-      <div
-        style={{ height }}
-        className="flex w-full items-center justify-center"
-      >
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center">
         {!configured && (
           <p className="text-g400 text-[12.5px]">Sin configurar</p>
         )}
@@ -59,7 +55,7 @@ function ChartWidgetCard({ widget }: { widget: Widget }) {
             <p className="text-[12.5px]">No se pudieron cargar los datos</p>
           </div>
         )}
-        {!isPending && !isError && data && (
+        {configured && !isPending && !isError && data && (
           <div className="h-full w-full">
             <ChartRenderer
               type={widget.chart_type}

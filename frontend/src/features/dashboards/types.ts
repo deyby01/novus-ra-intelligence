@@ -23,6 +23,8 @@ export interface WidgetConfig {
   group_by?: string
   title?: string
   size?: WidgetSize
+  /** Bucket a date `group_by` by month (set by the overview engine for lines). */
+  bucket?: 'month'
 }
 
 export interface WidgetPosition {

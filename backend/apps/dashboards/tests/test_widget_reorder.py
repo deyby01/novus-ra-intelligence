@@ -32,9 +32,7 @@ def _url(dashboard_id):
 def _widgets(org, dashboard, count=3):
     dataset = DatasetFactory(organization=org)
     return [
-        WidgetFactory(
-            dashboard=dashboard, organization=org, dataset=dataset, chart_type="kpi"
-        )
+        WidgetFactory(dashboard=dashboard, organization=org, dataset=dataset, chart_type="kpi")
         for _ in range(count)
     ]
 

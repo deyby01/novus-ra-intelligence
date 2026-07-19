@@ -119,9 +119,7 @@ class DashboardViewSet(
         # Re-query so the response reflects the new order (get_object prefetched
         # the widgets in their old order).
         reordered = Widget.objects.filter(dashboard=dashboard).order_by("order", "created_at")
-        serializer = WidgetSerializer(
-            reordered, many=True, context=self.get_serializer_context()
-        )
+        serializer = WidgetSerializer(reordered, many=True, context=self.get_serializer_context())
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["post"], url_path="generate")

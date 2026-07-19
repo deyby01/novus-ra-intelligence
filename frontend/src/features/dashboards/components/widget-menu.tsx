@@ -1,4 +1,4 @@
-import { MoreVertical, Trash2 } from 'lucide-react'
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,15 +7,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 /**
- * The per-widget "⋯" menu. Only "Eliminar" is wired today; editing a widget,
- * duplicating it, or changing its chart type belong to the widget config panel,
- * a separate flow that isn't built yet — so they're intentionally absent rather
- * than shown disabled.
+ * The per-widget "⋯" menu: edit the widget's configuration or delete it.
+ * Resizing and reordering are direct gestures on the card, not menu items.
  */
 export function WidgetMenu({
+  onEdit,
   onDelete,
   disabled,
 }: {
+  onEdit: () => void
   onDelete: () => void
   disabled?: boolean
 }) {
@@ -32,6 +32,10 @@ export function WidgetMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil className="mr-2 size-4" strokeWidth={1.5} />
+          Editar
+        </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onSelect={onDelete}>
           <Trash2 className="mr-2 size-4" strokeWidth={1.5} />
           Eliminar

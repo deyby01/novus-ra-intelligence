@@ -99,6 +99,7 @@ import {
   deleteWidget,
   getDatasetAggregation,
   getWidgets,
+  reorderWidgets,
   updateWidget,
 } from './api'
 import type { AggregationQuery, Widget } from './types'
@@ -160,6 +161,35 @@ export function useResizeWidget(dashboardId: string) {
     )
     update.mutate({ id: widget.id, position })
   }
+}
+
+/**
+ * Persist a new widget order via drag-to-reorder. Reorders the cache
+ * optimistically (so the grid holds the drop instantly) and rolls back if the
+ * request fails.
+ */
+export function useReorderWidgets(dashboardId: string) {
+  const queryClient = useQueryClient()
+  const organizationId = useOrganizationId()
+  const key = ['widgets', organizationId, dashboardId]
+  return useMutation({
+    mutationFn: (widgetIds: string[]) => reorderWidgets(dashboardId, widgetIds),
+    onMutate: (widgetIds: string[]) => {
+      const previous = queryClient.getQueryData<Widget[]>(key)
+      if (previous) {
+        const byId = new Map(previous.map((widget) => [widget.id, widget]))
+        const next = widgetIds
+          .map((id) => byId.get(id))
+          .filter((widget): widget is Widget => widget !== undefined)
+        queryClient.setQueryData<Widget[]>(key, next)
+      }
+      return { previous }
+    },
+    onError: (_error, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(key, context.previous)
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: key }),
+  })
 }
 
 export function useDatasetAggregation(

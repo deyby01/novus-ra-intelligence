@@ -15,7 +15,13 @@ import { WidgetMenu } from './widget-menu'
  * No variation pill: our datasets have no guaranteed period, so a "vs previous"
  * delta isn't well-defined and we don't fabricate one.
  */
-export function KpiWidget({ widget }: { widget: Widget }) {
+export function KpiWidget({
+  widget,
+  onEdit,
+}: {
+  widget: Widget
+  onEdit: () => void
+}) {
   const configured = Boolean(widget.config.agg)
   const value = useDatasetAggregation(
     {
@@ -45,7 +51,11 @@ export function KpiWidget({ widget }: { widget: Widget }) {
         <span className="text-g500 truncate pr-2 text-[10.5px] font-semibold tracking-[0.05em] uppercase">
           {widgetTitle(widget)}
         </span>
-        <WidgetMenu onDelete={handleDelete} disabled={remove.isPending} />
+        <WidgetMenu
+          onEdit={onEdit}
+          onDelete={handleDelete}
+          disabled={remove.isPending}
+        />
       </div>
 
       {!configured ? (

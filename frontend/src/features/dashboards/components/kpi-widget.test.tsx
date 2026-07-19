@@ -15,6 +15,7 @@ const KPI: Widget = {
   chart_type: 'kpi',
   config: { agg: 'sum', metric: 'units', title: 'Ingresos', size: 'small' },
   position: null,
+  order: 0,
   created_at: '2026-07-08T00:00:00Z',
   updated_at: '2026-07-08T00:00:00Z',
 }
@@ -70,7 +71,7 @@ describe('KpiWidget', () => {
       }),
     )
 
-    renderWithProviders(<KpiWidget widget={KPI} />)
+    renderWithProviders(<KpiWidget widget={KPI} onEdit={() => {}} />)
 
     expect(await screen.findByText('53')).toBeInTheDocument()
     await waitFor(() =>
@@ -81,7 +82,7 @@ describe('KpiWidget', () => {
   it('shows "Sin configurar" for a widget whose config has no aggregation', async () => {
     // A free-form widget config can be empty; it must not crash the dashboard.
     const empty = { ...KPI, config: {} } as Widget
-    renderWithProviders(<KpiWidget widget={empty} />)
+    renderWithProviders(<KpiWidget widget={empty} onEdit={() => {}} />)
 
     expect(await screen.findByText(/sin configurar/i)).toBeInTheDocument()
   })
@@ -94,7 +95,7 @@ describe('KpiWidget', () => {
       ),
     )
 
-    renderWithProviders(<KpiWidget widget={KPI} />)
+    renderWithProviders(<KpiWidget widget={KPI} onEdit={() => {}} />)
 
     expect(await screen.findByText('53')).toBeInTheDocument()
     expect(document.querySelector('polyline')).toBeNull()

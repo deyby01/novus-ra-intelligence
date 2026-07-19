@@ -97,6 +97,18 @@ export async function deleteWidget(id: string): Promise<void> {
   await apiClient.delete(`/widgets/${id}/`)
 }
 
+/** Persist a new left-to-right order for a dashboard's widgets. */
+export async function reorderWidgets(
+  dashboardId: string,
+  widgetIds: string[],
+): Promise<Widget[]> {
+  const { data } = await apiClient.post<Widget[]>(
+    `/dashboards/${dashboardId}/reorder/`,
+    { widget_ids: widgetIds },
+  )
+  return data
+}
+
 export async function getDatasetAggregation(
   query: AggregationQuery,
 ): Promise<AggregationResult> {

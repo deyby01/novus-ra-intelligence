@@ -1,9 +1,22 @@
 import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  rectSortingStrategy,
+  SortableContext,
+} from '@dnd-kit/sortable'
+import {
   ArrowLeft,
   Check,
   LayoutGrid,
   Loader2,
-  Maximize2,
+  Move,
   MoreVertical,
   Pencil,
   Plus,
@@ -32,9 +45,11 @@ import { WidgetGridItem } from '../components/widget-grid-item'
 import {
   useDashboard,
   useDashboardMutations,
+  useReorderWidgets,
   useResizeWidget,
   useWidgets,
 } from '../hooks'
+import type { Widget } from '../types'
 import { GRID_COLUMNS, GRID_GAP_PX, GRID_ROW_PX, relativeTime } from '../utils'
 
 /** The dashed tile below the grid: add a widget by hand or let the AI suggest. */
@@ -87,15 +102,35 @@ export function DashboardDetailPage() {
     isError: widgetsError,
   } = useWidgets(dashboardId)
   const resizeWidget = useResizeWidget(dashboardId)
+  const reorder = useReorderWidgets(dashboardId)
   const gridRef = useRef<HTMLDivElement>(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  )
 
   const [isAddingWidget, setIsAddingWidget] = useState(false)
+  const [editWidget, setEditWidget] = useState<Widget | null>(null)
   const [renameOpen, setRenameOpen] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
 
   const handleDelete = () => {
     remove.mutate(dashboardId, { onSuccess: () => navigate('/dashboards') })
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id || !widgets) return
+    const ids = widgets.map((widget) => widget.id)
+    const from = ids.indexOf(String(active.id))
+    const to = ids.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    reorder.mutate(arrayMove(ids, from, to))
+  }
+
+  const closeWidgetModal = () => {
+    setIsAddingWidget(false)
+    setEditWidget(null)
   }
 
   const hasWidgets = Boolean(widgets && widgets.length > 0)
@@ -163,8 +198,8 @@ export function DashboardDetailPage() {
                     </>
                   ) : (
                     <>
-                      <Maximize2 className="size-[14px]" strokeWidth={1.5} />
-                      Editar
+                      <Move className="size-[14px]" strokeWidth={1.5} />
+                      Reordenar
                     </>
                   )}
                 </button>
@@ -288,31 +323,43 @@ export function DashboardDetailPage() {
             <>
               {isEditing && (
                 <div className="border-g200 bg-g50 text-g600 flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[12.5px]">
-                  <Maximize2 className="size-3.5 shrink-0" strokeWidth={1.5} />
-                  Arrastra la esquina inferior derecha de un widget para cambiar
-                  su tamaño.
+                  <Move className="size-3.5 shrink-0" strokeWidth={1.5} />
+                  Arrastra el asa de un widget para reordenarlo. Puedes
+                  redimensionar desde la esquina en cualquier momento.
                 </div>
               )}
-              <div
-                ref={gridRef}
-                className="grid"
-                style={{
-                  gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
-                  gridAutoRows: `${GRID_ROW_PX}px`,
-                  gap: `${GRID_GAP_PX}px`,
-                  gridAutoFlow: 'row dense',
-                }}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {widgets?.map((widget) => (
-                  <WidgetGridItem
-                    key={widget.id}
-                    widget={widget}
-                    editing={isEditing}
-                    gridRef={gridRef}
-                    onResize={resizeWidget}
-                  />
-                ))}
-              </div>
+                <SortableContext
+                  items={widgets?.map((widget) => widget.id) ?? []}
+                  strategy={rectSortingStrategy}
+                >
+                  <div
+                    ref={gridRef}
+                    className="grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
+                      gridAutoRows: `${GRID_ROW_PX}px`,
+                      gap: `${GRID_GAP_PX}px`,
+                      gridAutoFlow: 'row',
+                    }}
+                  >
+                    {widgets?.map((widget) => (
+                      <WidgetGridItem
+                        key={widget.id}
+                        widget={widget}
+                        editing={isEditing}
+                        gridRef={gridRef}
+                        onResize={resizeWidget}
+                        onEditWidget={setEditWidget}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
               <AddWidgetTile
                 dashboardId={dashboardId}
                 onAdd={() => setIsAddingWidget(true)}
@@ -322,8 +369,9 @@ export function DashboardDetailPage() {
 
           <AddWidgetModal
             dashboardId={dashboardId}
-            isOpen={isAddingWidget}
-            onClose={() => setIsAddingWidget(false)}
+            isOpen={isAddingWidget || editWidget !== null}
+            editWidget={editWidget}
+            onClose={closeWidgetModal}
           />
           <RenameDashboardDialog
             id={dashboardId}

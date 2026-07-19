@@ -7,12 +7,25 @@ import { KpiWidget } from './kpi-widget'
 import { WidgetMenu } from './widget-menu'
 
 /** A dashboard widget. KPIs get a compact card; everything else charts its data. */
-export function WidgetCard({ widget }: { widget: Widget }) {
-  if (widget.chart_type === 'kpi') return <KpiWidget widget={widget} />
-  return <ChartWidgetCard widget={widget} />
+export function WidgetCard({
+  widget,
+  onEdit,
+}: {
+  widget: Widget
+  onEdit: () => void
+}) {
+  if (widget.chart_type === 'kpi')
+    return <KpiWidget widget={widget} onEdit={onEdit} />
+  return <ChartWidgetCard widget={widget} onEdit={onEdit} />
 }
 
-function ChartWidgetCard({ widget }: { widget: Widget }) {
+function ChartWidgetCard({
+  widget,
+  onEdit,
+}: {
+  widget: Widget
+  onEdit: () => void
+}) {
   const configured = Boolean(widget.config.agg)
   const { data, isPending, isError } = useDatasetAggregation(
     {
@@ -36,7 +49,11 @@ function ChartWidgetCard({ widget }: { widget: Widget }) {
         <h3 className="font-display text-g900 truncate pr-2 text-[16px] font-semibold tracking-[-0.01em]">
           {widgetTitle(widget)}
         </h3>
-        <WidgetMenu onDelete={handleDelete} disabled={remove.isPending} />
+        <WidgetMenu
+          onEdit={onEdit}
+          onDelete={handleDelete}
+          disabled={remove.isPending}
+        />
       </div>
 
       <div className="flex min-h-0 w-full flex-1 items-center justify-center">

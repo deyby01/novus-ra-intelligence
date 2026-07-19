@@ -97,7 +97,7 @@ describe('DashboardDetailPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('reveals a resize handle for each widget in edit mode', async () => {
+  it('resizes any widget without a mode and reveals a move handle when reordering', async () => {
     server.use(
       http.get('*/dashboards/dash-1/', () => HttpResponse.json(DASHBOARD)),
       http.get('*/widgets/', () =>
@@ -138,10 +138,18 @@ describe('DashboardDetailPage', () => {
     )
     renderDetail()
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
-
+    // The resize handle is available on every widget without entering a mode.
     expect(
       await screen.findByRole('button', { name: /redimensionar widget/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /mover widget/i }),
+    ).not.toBeInTheDocument()
+
+    // Reorder mode adds a drag handle.
+    await userEvent.click(screen.getByRole('button', { name: 'Reordenar' }))
+    expect(
+      await screen.findByRole('button', { name: /mover widget/i }),
     ).toBeInTheDocument()
   })
 

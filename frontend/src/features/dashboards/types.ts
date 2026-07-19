@@ -41,6 +41,8 @@ export interface Widget {
   chart_type: ChartType
   config: WidgetConfig
   position: WidgetPosition | null
+  /** Position in the dashboard's widget sequence (drives drag-to-reorder). */
+  order: number
   created_at: string
   updated_at: string
 }

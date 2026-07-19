@@ -2,6 +2,7 @@
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Max
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -89,6 +90,40 @@ class DashboardViewSet(
         serializer = self.get_serializer(copy)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="reorder")
+    def reorder(self, request: Request, pk: str | None = None) -> Response:
+        """Persist a new left-to-right order for this dashboard's widgets.
+
+        The payload must list *exactly* the dashboard's widget ids so orders can
+        never collide or reference another tenant's widget: `get_object` scopes
+        the dashboard, and every id is checked against its own widgets.
+        """
+        dashboard = self.get_object()  # tenant-scoped: a foreign id 404s here.
+        widget_ids = request.data.get("widget_ids")
+        if not isinstance(widget_ids, list):
+            return Response(
+                {"detail": "widget_ids must be a list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        widgets = {str(widget.id): widget for widget in dashboard.widgets.all()}
+        provided = [str(widget_id) for widget_id in widget_ids]
+        if len(provided) != len(widgets) or set(provided) != set(widgets):
+            return Response(
+                {"detail": "widget_ids must list exactly this dashboard's widgets."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            for index, widget_id in enumerate(provided):
+                widgets[widget_id].order = index
+            Widget.objects.bulk_update(widgets.values(), ["order"])
+        # Re-query so the response reflects the new order (get_object prefetched
+        # the widgets in their old order).
+        reordered = Widget.objects.filter(dashboard=dashboard).order_by("order", "created_at")
+        serializer = WidgetSerializer(
+            reordered, many=True, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=["post"], url_path="generate")
     def generate(self, request: Request) -> Response:
         """Generate a dashboard from a dataset (deterministic widgets + AI naming)."""
@@ -124,4 +159,10 @@ class WidgetViewSet(
     serializer_class = WidgetSerializer
     queryset = Widget.objects.select_related("dashboard", "dataset")
     filterset_fields = ["dashboard", "chart_type"]
-    ordering_fields = ["created_at"]
+    ordering_fields = ["order", "created_at"]
+
+    def perform_create(self, serializer: BaseSerializer) -> None:
+        """Append the new widget after the dashboard's existing ones."""
+        dashboard = serializer.validated_data["dashboard"]
+        last = Widget.objects.filter(dashboard=dashboard).aggregate(top=Max("order"))["top"]
+        super().perform_create(serializer, order=(last or 0) + 1)

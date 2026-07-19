@@ -46,9 +46,13 @@ class Widget(TenantBaseModel):
     chart_type = models.CharField(max_length=20, choices=ChartType.choices)
     config = models.JSONField(default=dict)
     position = models.JSONField(default=dict)
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Position in the dashboard's widget sequence; set by reorder.",
+    )
 
     class Meta:
-        ordering = ["created_at"]
+        ordering = ["order", "created_at"]
 
     def __str__(self) -> str:
         return f"{self.dashboard} · {self.chart_type}"

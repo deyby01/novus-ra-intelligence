@@ -10,6 +10,7 @@ function makeWidget(overrides: Partial<Widget> = {}): Widget {
     chart_type: 'bar',
     config: { agg: 'sum', metric: 'x', title: 'T', size: 'medium' },
     position: null,
+    order: 0,
     created_at: '',
     updated_at: '',
     ...overrides,

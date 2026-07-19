@@ -1,4 +1,11 @@
-import type { PointerEvent as ReactPointerEvent, RefObject } from 'react'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical } from 'lucide-react'
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+  RefObject,
+} from 'react'
 import { useRef, useState } from 'react'
 import type { Widget } from '../types'
 import {
@@ -18,20 +25,31 @@ interface WidgetGridItemProps {
   editing: boolean
   gridRef: RefObject<HTMLDivElement | null>
   onResize: (widget: Widget, span: WidgetSpan) => void
+  onEditWidget: (widget: Widget) => void
 }
 
 /**
- * A widget placed in the resizable grid. In edit mode a bottom-right handle
- * drags the widget's column/row span; the span snaps to the grid and updates
- * live, then persists on release. Column width is measured from the grid so the
- * snap matches what the user sees at any viewport.
+ * A widget in the resizable grid. The bottom-right handle drag-resizes the
+ * widget's span at any time (shown on hover); in edit mode a top-left grip
+ * makes the card draggable to reorder (dnd-kit). The two never conflict — the
+ * resize handle owns its own pointer sequence, the grip owns the drag.
  */
 export function WidgetGridItem({
   widget,
   editing,
   gridRef,
   onResize,
+  onEditWidget,
 }: WidgetGridItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: widget.id, disabled: !editing })
+
   const [draft, setDraft] = useState<WidgetSpan | null>(null)
   const latest = useRef<WidgetSpan | null>(null)
   const span = draft ?? widgetSpan(widget)
@@ -69,32 +87,55 @@ export function WidgetGridItem({
     window.addEventListener('pointerup', end)
   }
 
+  const style: CSSProperties = {
+    gridColumn: `span ${span.w}`,
+    gridRow: `span ${span.h}`,
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  }
+
   return (
     <div
-      style={{ gridColumn: `span ${span.w}`, gridRow: `span ${span.h}` }}
-      className={`relative h-full ${editing ? 'ring-g300 rounded-2xl ring-2 ring-offset-2' : ''}`}
+      ref={setNodeRef}
+      style={style}
+      className={`group relative h-full ${
+        editing ? 'ring-g300 rounded-2xl ring-2 ring-offset-2' : ''
+      }`}
     >
-      <WidgetCard widget={widget} />
+      <WidgetCard widget={widget} onEdit={() => onEditWidget(widget)} />
+
       {editing && (
         <button
           type="button"
-          aria-label="Redimensionar widget"
-          onPointerDown={startResize}
-          className="text-g500 hover:text-g900 border-g200 absolute right-1 bottom-1 grid size-6 cursor-se-resize touch-none place-items-center rounded-md border bg-white/90 backdrop-blur"
+          aria-label="Mover widget"
+          {...attributes}
+          {...listeners}
+          className="border-g200 text-g500 hover:text-g900 absolute top-1 left-1 grid size-6 cursor-grab touch-none place-items-center rounded-md border bg-white/90 backdrop-blur active:cursor-grabbing"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          >
-            <path d="M11 5 5 11M11 9l-2 2" />
-          </svg>
+          <GripVertical className="size-3.5" strokeWidth={1.5} />
         </button>
       )}
+
+      <button
+        type="button"
+        aria-label="Redimensionar widget"
+        onPointerDown={startResize}
+        className="border-g200 text-g500 hover:text-g900 absolute right-1 bottom-1 grid size-6 cursor-se-resize touch-none place-items-center rounded-md border bg-white/90 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+      >
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        >
+          <path d="M11 5 5 11M11 9l-2 2" />
+        </svg>
+      </button>
     </div>
   )
 }

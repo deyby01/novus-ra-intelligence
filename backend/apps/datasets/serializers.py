@@ -159,6 +159,7 @@ class AggregationQuerySerializer(serializers.Serializer):
     agg = serializers.ChoiceField(choices=AGGREGATIONS)
     metric = serializers.CharField(required=False)
     group_by = serializers.CharField(required=False)
+    bucket = serializers.ChoiceField(choices=["month"], required=False)
 
     def validate(self, attrs: dict) -> dict:
         """Cross-check the params against the dataset's field definitions."""

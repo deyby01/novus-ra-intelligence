@@ -1,81 +1,79 @@
-import { AlertCircle, Loader2, MoreVertical, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { useDatasetAggregation, useWidgetMutations } from '../hooks'
 import type { Widget } from '../types'
-import { ChartRenderer, chartHeight } from './chart-renderer'
+import { widgetTitle } from '../utils'
+import { ChartRenderer } from './chart-renderer'
+import { KpiWidget } from './kpi-widget'
+import { WidgetMenu } from './widget-menu'
 
-export function WidgetCard({ widget }: { widget: Widget }) {
-  const { data, isPending, isError } = useDatasetAggregation({
-    datasetId: widget.dataset,
-    agg: widget.config.agg,
-    metric: widget.config.metric,
-    group_by: widget.config.group_by,
-  })
+/** A dashboard widget. KPIs get a compact card; everything else charts its data. */
+export function WidgetCard({
+  widget,
+  onEdit,
+}: {
+  widget: Widget
+  onEdit: () => void
+}) {
+  if (widget.chart_type === 'kpi')
+    return <KpiWidget widget={widget} onEdit={onEdit} />
+  return <ChartWidgetCard widget={widget} onEdit={onEdit} />
+}
 
+function ChartWidgetCard({
+  widget,
+  onEdit,
+}: {
+  widget: Widget
+  onEdit: () => void
+}) {
+  const configured = Boolean(widget.config.agg)
+  const { data, isPending, isError } = useDatasetAggregation(
+    {
+      datasetId: widget.dataset,
+      agg: widget.config.agg,
+      metric: widget.config.metric,
+      group_by: widget.config.group_by,
+      bucket: widget.config.bucket,
+    },
+    { enabled: configured },
+  )
   const { remove } = useWidgetMutations(widget.dashboard)
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this widget?')) {
-      remove.mutate(widget.id)
-    }
+    if (window.confirm('¿Eliminar este widget?')) remove.mutate(widget.id)
   }
 
-  // Use custom title if provided, otherwise generate one
-  const title =
-    widget.config.title ||
-    `${widget.config.agg.toUpperCase()}${
-      widget.config.metric ? ` of ${widget.config.metric}` : ''
-    }${widget.config.group_by ? ` by ${widget.config.group_by}` : ''}`
-
-  const height = chartHeight(widget.config.size)
-
   return (
-    <div className="flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-center justify-between p-4 pb-2 sm:p-6 sm:pb-2">
-        <h3 className="truncate pr-2 text-sm font-semibold leading-none tracking-tight sm:text-base">
-          {title}
+    <div className="border-g200 flex h-full flex-col rounded-2xl border bg-white p-5 sm:p-[21px]">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <h3 className="font-display text-g900 truncate pr-2 text-[16px] font-semibold tracking-[-0.01em]">
+          {widgetTitle(widget)}
         </h3>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-8 w-8 shrink-0 p-0"
-              disabled={remove.isPending}
-            >
-              <span className="sr-only">Open menu</span>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="text-destructive focus:bg-destructive focus:text-destructive-foreground cursor-pointer"
-              onClick={handleDelete}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete widget
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <WidgetMenu
+          onEdit={onEdit}
+          onDelete={handleDelete}
+          disabled={remove.isPending}
+        />
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-4 pt-0 sm:p-6 sm:pt-0">
-        {isPending && (
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+        {!configured && (
+          <p className="text-g400 text-[12.5px]">Sin configurar</p>
         )}
-        {!isPending && isError && (
-          <div className="flex flex-col items-center gap-2 text-destructive">
-            <AlertCircle className="h-8 w-8" />
-            <p className="text-sm">Failed to load data</p>
+        {configured && isPending && (
+          <Loader2
+            className="text-g300 size-8 animate-spin"
+            strokeWidth={1.5}
+          />
+        )}
+        {configured && !isPending && isError && (
+          <div className="text-g400 flex flex-col items-center gap-2">
+            <AlertCircle className="size-7" strokeWidth={1.5} />
+            <p className="text-[12.5px]">No se pudieron cargar los datos</p>
           </div>
         )}
-        {!isPending && !isError && data && (
-          <div className="w-full" style={{ height }}>
+        {configured && !isPending && !isError && data && (
+          <div className="h-full w-full">
             <ChartRenderer
               type={widget.chart_type}
               data={data}

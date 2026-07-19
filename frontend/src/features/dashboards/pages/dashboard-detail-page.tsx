@@ -1,11 +1,95 @@
-import { ArrowLeft, BarChart3, Plus } from 'lucide-react'
-import { useState } from 'react'
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  rectSortingStrategy,
+  SortableContext,
+} from '@dnd-kit/sortable'
+import {
+  ArrowLeft,
+  Check,
+  LayoutGrid,
+  Loader2,
+  Move,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Sparkles,
+} from 'lucide-react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { AddWidgetModal } from '../components/add-widget-modal'
-import { WidgetCard } from '../components/widget-card'
-import { useDashboard, useDashboardMutations, useWidgets } from '../hooks'
-import { sizeToColSpan } from '../utils'
+import { RenameDashboardDialog } from '../components/rename-dashboard-dialog'
+import { ShareButton } from '../components/share-button'
+import { SuggestWidgetDialog } from '../components/suggest-widget-dialog'
+import { WidgetGridItem } from '../components/widget-grid-item'
+import {
+  useDashboard,
+  useDashboardMutations,
+  useReorderWidgets,
+  useResizeWidget,
+  useWidgets,
+} from '../hooks'
+import type { Widget } from '../types'
+import { GRID_COLUMNS, GRID_GAP_PX, GRID_ROW_PX, relativeTime } from '../utils'
+
+/** The dashed tile below the grid: add a widget by hand or let the AI suggest. */
+function AddWidgetTile({
+  dashboardId,
+  onAdd,
+}: {
+  dashboardId: string
+  onAdd: () => void
+}) {
+  return (
+    <div className="border-g300 flex flex-wrap items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed bg-white p-4">
+      <span className="bg-g100 text-g700 grid size-[34px] place-items-center rounded-[10px]">
+        <Plus className="size-[17px]" strokeWidth={1.5} />
+      </span>
+      <span className="text-g500 hidden text-[12.5px] sm:inline">
+        Añade un gráfico, KPI o tabla — o deja que la IA sugiera
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onAdd}
+          className="bg-g900 font-display hover:bg-g800 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[12.5px] font-semibold text-white transition-colors"
+        >
+          <Plus className="size-[14px]" strokeWidth={1.5} />
+          Añadir widget
+        </button>
+        <SuggestWidgetDialog dashboardId={dashboardId}>
+          <button
+            type="button"
+            className="bg-g100 text-g700 font-display hover:bg-g150 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-[12.5px] font-semibold transition-colors"
+          >
+            <Sparkles className="size-[14px]" strokeWidth={1.5} />
+            Sugerir con IA
+          </button>
+        </SuggestWidgetDialog>
+      </div>
+    </div>
+  )
+}
 
 export function DashboardDetailPage() {
   const { dashboardId = '' } = useParams<{ dashboardId: string }>()
@@ -17,145 +101,325 @@ export function DashboardDetailPage() {
     isPending: widgetsPending,
     isError: widgetsError,
   } = useWidgets(dashboardId)
+  const resizeWidget = useResizeWidget(dashboardId)
+  const reorder = useReorderWidgets(dashboardId)
+  const gridRef = useRef<HTMLDivElement>(null)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  )
 
-  const [isConfirming, setIsConfirming] = useState(false)
   const [isAddingWidget, setIsAddingWidget] = useState(false)
+  const [editWidget, setEditWidget] = useState<Widget | null>(null)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const handleDelete = () => {
-    remove.mutate(dashboardId, {
-      onSuccess: () => navigate('/dashboards'),
-    })
+    remove.mutate(dashboardId, { onSuccess: () => navigate('/dashboards') })
   }
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id || !widgets) return
+    const ids = widgets.map((widget) => widget.id)
+    const from = ids.indexOf(String(active.id))
+    const to = ids.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    reorder.mutate(arrayMove(ids, from, to))
+  }
+
+  const closeWidgetModal = () => {
+    setIsAddingWidget(false)
+    setEditWidget(null)
+  }
+
+  const hasWidgets = Boolean(widgets && widgets.length > 0)
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-7 pb-[34px] pt-[22px]">
       <Link
         to="/dashboards"
-        className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm transition-colors"
+        className="text-g500 hover:text-g700 inline-flex items-center gap-1.5 text-[12.5px] font-medium transition-colors"
       >
-        <ArrowLeft className="size-4" />
+        <ArrowLeft className="size-[15px]" strokeWidth={1.5} />
         Dashboards
       </Link>
 
       {isPending && (
-        <div className="space-y-4">
-          <div className="bg-muted h-8 w-56 animate-pulse rounded-lg" />
-          <div className="bg-muted h-64 animate-pulse rounded-xl" />
+        <div className="flex flex-col gap-4">
+          <div className="bg-g100 h-8 w-56 animate-pulse rounded-lg" />
+          <div className="bg-g100 h-64 animate-pulse rounded-2xl" />
         </div>
       )}
 
       {!isPending && isError && (
-        <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
-          We couldn&apos;t load this dashboard. Please try again.
+        <p className="border-g200 text-g500 rounded-2xl border border-dashed p-10 text-center text-sm">
+          No pudimos cargar este dashboard. Intenta de nuevo.
         </p>
       )}
 
       {!isPending && !isError && dashboard && (
         <>
-          <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {/* Action bar */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="font-display text-g900 truncate text-[20px] font-semibold tracking-[-0.02em]">
                 {dashboard.name}
               </h1>
-              {dashboard.description && (
-                <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+              <button
+                type="button"
+                aria-label="Renombrar dashboard"
+                onClick={() => setRenameOpen(true)}
+                className="text-g400 hover:bg-g100 hover:text-g600 grid size-7 shrink-0 place-items-center rounded-lg transition-colors"
+              >
+                <Pencil className="size-[14px]" strokeWidth={1.5} />
+              </button>
+              <span className="text-g400 text-[11.5px]">
+                Actualizado {relativeTime(dashboard.updated_at)}
+              </span>
+            </div>
+
+            <div className="ml-auto flex flex-wrap items-center gap-2.5">
+              <ShareButton />
+              {hasWidgets && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing((value) => !value)}
+                  className={`font-display inline-flex items-center gap-1.5 rounded-[11px] px-[14px] py-[9px] text-[12.5px] font-semibold transition-colors ${
+                    isEditing
+                      ? 'bg-g900 hover:bg-g800 text-white'
+                      : 'border-g200 text-g700 hover:bg-g100 border bg-white'
+                  }`}
+                >
+                  {isEditing ? (
+                    <>
+                      <Check className="size-[14px]" strokeWidth={1.5} />
+                      Listo
+                    </>
+                  ) : (
+                    <>
+                      <Move className="size-[14px]" strokeWidth={1.5} />
+                      Reordenar
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsAddingWidget(true)}
+                className="bg-g900 font-display hover:bg-g800 inline-flex items-center gap-1.5 rounded-[11px] px-[15px] py-[9px] text-[12.5px] font-semibold text-white transition-colors"
+              >
+                <Plus className="size-[14px]" strokeWidth={1.5} />
+                Añadir widget
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Acciones del dashboard"
+                    className="bg-g100 text-g600 hover:bg-g150 grid size-9 shrink-0 place-items-center rounded-[11px] transition-colors"
+                  >
+                    <MoreVertical className="size-4" strokeWidth={1.5} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+                    Renombrar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => setConfirmDeleteOpen(true)}
+                  >
+                    Eliminar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* AI insight — only when the AI wrote a summary for this dashboard */}
+          {dashboard.description && (
+            <section className="bg-g950 relative overflow-hidden rounded-2xl p-5 text-white sm:p-[21px]">
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 opacity-100"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 0)',
+                  backgroundSize: '20px 20px',
+                }}
+              />
+              <div className="relative">
+                <div className="mb-2.5 flex items-center gap-2.5">
+                  <span className="grid size-[26px] place-items-center rounded-lg border border-white/20 bg-white/10">
+                    <Sparkles className="size-[14px]" strokeWidth={1.5} />
+                  </span>
+                  <span className="font-display text-[13px] font-semibold">
+                    Insight de la IA
+                  </span>
+                  <span className="text-g400 rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.04em]">
+                    AUTO
+                  </span>
+                </div>
+                <p className="max-w-3xl text-[13.5px] leading-relaxed text-white/90">
                   {dashboard.description}
                 </p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={() => setIsAddingWidget(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add widget
-              </Button>
-              {isConfirming ? (
-                <>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDelete}
-                    disabled={remove.isPending}
-                  >
-                    Confirm Delete
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsConfirming(false)}
-                    disabled={remove.isPending}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button variant="outline" onClick={() => setIsConfirming(true)}>
-                  Delete dashboard
-                </Button>
-              )}
-            </div>
-          </header>
-
-          {remove.isError && (
-            <p className="text-destructive mb-4 text-sm">
-              We couldn&apos;t delete the dashboard. Please try again.
-            </p>
+              </div>
+            </section>
           )}
 
+          {/* Widgets */}
           {widgetsPending && (
             <div className="grid grid-cols-6 gap-4">
               {[0, 1].map((key) => (
                 <div
                   key={key}
-                  className="col-span-6 h-[300px] animate-pulse rounded-xl bg-muted sm:col-span-3"
+                  className="bg-g100 col-span-6 h-[300px] animate-pulse rounded-2xl sm:col-span-3"
                 />
               ))}
             </div>
           )}
 
           {widgetsError && (
-            <p className="text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
-              We couldn&apos;t load the widgets. Please try again.
+            <p className="border-g200 text-g500 rounded-2xl border border-dashed p-10 text-center text-sm">
+              No pudimos cargar los widgets. Intenta de nuevo.
             </p>
           )}
 
-          {widgets?.length === 0 && (
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
-              <div className="bg-muted grid size-12 place-items-center rounded-xl border">
-                <BarChart3 className="text-muted-foreground size-6" />
-              </div>
-              <h2 className="text-lg font-semibold tracking-tight">
-                No widgets yet
+          {widgets && widgets.length === 0 && (
+            <div className="border-g300 flex flex-col items-center gap-3 rounded-2xl border-[1.5px] border-dashed bg-white px-6 py-16 text-center">
+              <span className="bg-g100 text-g600 grid size-12 place-items-center rounded-[13px]">
+                <LayoutGrid className="size-6" strokeWidth={1.5} />
+              </span>
+              <h2 className="font-display text-g900 text-lg font-semibold tracking-tight">
+                Aún no hay widgets
               </h2>
-              <p className="text-muted-foreground max-w-sm text-sm">
-                Add widgets to visualize your data.
+              <p className="text-g500 max-w-sm text-sm">
+                Añade widgets para visualizar los datos de este workspace.
               </p>
-              <Button
-                variant="outline"
-                className="mt-2"
-                onClick={() => setIsAddingWidget(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add widget
-              </Button>
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingWidget(true)}
+                  className="bg-g900 font-display hover:bg-g800 inline-flex items-center gap-1.5 rounded-[11px] px-4 py-2 text-[13px] font-semibold text-white transition-colors"
+                >
+                  <Plus className="size-4" strokeWidth={1.5} />
+                  Añadir widget
+                </button>
+                <SuggestWidgetDialog dashboardId={dashboardId}>
+                  <button
+                    type="button"
+                    className="border-g200 text-g700 font-display hover:bg-g100 inline-flex items-center gap-1.5 rounded-[11px] border bg-white px-4 py-2 text-[13px] font-semibold transition-colors"
+                  >
+                    <Sparkles className="size-4" strokeWidth={1.5} />
+                    Sugerir con IA
+                  </button>
+                </SuggestWidgetDialog>
+              </div>
             </div>
           )}
 
-          {widgets && widgets.length > 0 && (
-            <div className="grid grid-cols-6 gap-6">
-              {widgets.map((widget) => (
-                <div
-                  key={widget.id}
-                  className={sizeToColSpan(widget.config.size)}
-                >
-                  <WidgetCard widget={widget} />
+          {hasWidgets && (
+            <>
+              {isEditing && (
+                <div className="border-g200 bg-g50 text-g600 flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[12.5px]">
+                  <Move className="size-3.5 shrink-0" strokeWidth={1.5} />
+                  Arrastra el asa de un widget para reordenarlo. Puedes
+                  redimensionar desde la esquina en cualquier momento.
                 </div>
-              ))}
-            </div>
+              )}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={widgets?.map((widget) => widget.id) ?? []}
+                  strategy={rectSortingStrategy}
+                >
+                  <div
+                    ref={gridRef}
+                    className="grid"
+                    style={{
+                      gridTemplateColumns: `repeat(${GRID_COLUMNS}, minmax(0, 1fr))`,
+                      gridAutoRows: `${GRID_ROW_PX}px`,
+                      gap: `${GRID_GAP_PX}px`,
+                      gridAutoFlow: 'row',
+                    }}
+                  >
+                    {widgets?.map((widget) => (
+                      <WidgetGridItem
+                        key={widget.id}
+                        widget={widget}
+                        editing={isEditing}
+                        gridRef={gridRef}
+                        onResize={resizeWidget}
+                        onEditWidget={setEditWidget}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              <AddWidgetTile
+                dashboardId={dashboardId}
+                onAdd={() => setIsAddingWidget(true)}
+              />
+            </>
           )}
 
           <AddWidgetModal
             dashboardId={dashboardId}
-            isOpen={isAddingWidget}
-            onClose={() => setIsAddingWidget(false)}
+            isOpen={isAddingWidget || editWidget !== null}
+            editWidget={editWidget}
+            onClose={closeWidgetModal}
           />
+          <RenameDashboardDialog
+            id={dashboardId}
+            currentName={dashboard.name}
+            open={renameOpen}
+            onOpenChange={setRenameOpen}
+          />
+          <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="font-display">
+                  ¿Eliminar “{dashboard.name}”?
+                </DialogTitle>
+                <DialogDescription>
+                  Se eliminará el dashboard y sus widgets. Esta acción no se
+                  puede deshacer.
+                </DialogDescription>
+              </DialogHeader>
+              {remove.isError && (
+                <p className="text-[12.5px] text-red-600">
+                  No pudimos eliminarlo. Intenta de nuevo.
+                </p>
+              )}
+              <div className="mt-1 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteOpen(false)}
+                  className="text-g600 hover:bg-g100 rounded-[10px] px-4 py-2 text-[13.5px] font-semibold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={remove.isPending}
+                  onClick={handleDelete}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-red-600 px-4 py-2 text-[13.5px] font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+                >
+                  {remove.isPending && (
+                    <Loader2
+                      className="size-4 animate-spin"
+                      strokeWidth={1.5}
+                    />
+                  )}
+                  Eliminar
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

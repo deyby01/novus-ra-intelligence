@@ -23,6 +23,8 @@ export interface WidgetConfig {
   group_by?: string
   title?: string
   size?: WidgetSize
+  /** Bucket a date `group_by` by month (set by the overview engine for lines). */
+  bucket?: 'month'
 }
 
 export interface WidgetPosition {
@@ -39,6 +41,8 @@ export interface Widget {
   chart_type: ChartType
   config: WidgetConfig
   position: WidgetPosition | null
+  /** Position in the dashboard's widget sequence (drives drag-to-reorder). */
+  order: number
   created_at: string
   updated_at: string
 }
@@ -48,6 +52,8 @@ export interface AggregationQuery {
   agg: AggregationFunction
   metric?: string
   group_by?: string
+  /** Group a date `group_by` field by its "YYYY-MM" prefix (for a trend). */
+  bucket?: 'month'
 }
 
 export interface AggregationResultEntry {

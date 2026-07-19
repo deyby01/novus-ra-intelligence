@@ -127,6 +127,41 @@ def test_avg_min_max(client, sales_dataset):
 
 
 @pytest.mark.django_db
+def test_sum_grouped_by_month_bucket(client, org):
+    """bucket=month groups a date field's rows by their "YYYY-MM" prefix."""
+    dataset = DatasetFactory(organization=org)
+    DatasetFieldFactory(
+        dataset=dataset,
+        key="sold_at",
+        label="Sold at",
+        field_type=DatasetField.FieldType.DATE,
+    )
+    DatasetFieldFactory(
+        dataset=dataset,
+        key="units",
+        label="Units",
+        field_type=DatasetField.FieldType.NUMBER,
+    )
+    for data in (
+        {"sold_at": "2026-01-15", "units": 10},
+        {"sold_at": "2026-01-22", "units": 5},
+        {"sold_at": "2026-02-03", "units": 8},
+    ):
+        DatasetRowFactory(dataset=dataset, data=data)
+
+    response = client.get(
+        _url(dataset),
+        {"agg": "sum", "metric": "units", "group_by": "sold_at", "bucket": "month"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["results"] == [
+        {"group": "2026-01", "value": 15.0},
+        {"group": "2026-02", "value": 8.0},
+    ]
+
+
+@pytest.mark.django_db
 def test_dataset_with_no_rows_returns_empty_results(client, org):
     dataset = DatasetFactory(organization=org)
     DatasetFieldFactory(
@@ -191,6 +226,16 @@ def test_unknown_group_by_key_is_rejected(client, sales_dataset):
     response = client.get(
         _url(sales_dataset),
         {"agg": "count", "group_by": "nope"},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_invalid_bucket_is_rejected(client, sales_dataset):
+    response = client.get(
+        _url(sales_dataset),
+        {"agg": "count", "group_by": "region", "bucket": "week"},
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST

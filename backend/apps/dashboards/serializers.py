@@ -69,10 +69,12 @@ class WidgetSerializer(serializers.ModelSerializer):
             "chart_type",
             "config",
             "position",
+            "order",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        # `order` is managed by the reorder action + create, never set directly.
+        read_only_fields = ["id", "order", "created_at", "updated_at"]
 
     def __init__(self, *args, **kwargs) -> None:
         """Limit dashboard and dataset choices to the requesting organization."""

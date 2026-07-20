@@ -38,6 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseModel):
     """Application user authenticated by email instead of username."""
 
     email = models.EmailField(unique=True)
+    name = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 

@@ -1,12 +1,14 @@
-import { Clock } from 'lucide-react'
+import { ArrowLeftRight, Clock, LogOut, Settings } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useLogout, useMe } from '@/features/auth/hooks'
+import type { User } from '@/features/auth/types'
 import { WorkspaceIndicator } from '@/features/organizations/components/workspace-indicator'
 import { cn } from '@/lib/utils'
 
@@ -16,8 +18,15 @@ const navItems = [
   { to: '/dashboards', label: 'Dashboards', end: false },
 ]
 
-function initialsFromEmail(email: string): string {
-  return email.split('@')[0].slice(0, 2).toUpperCase()
+/** Two-letter avatar initials from the display name, falling back to the email. */
+function initialsFor(user: User): string {
+  const name = user.name.trim()
+  if (name) {
+    const parts = name.split(/\s+/)
+    const raw = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2)
+    return raw.toUpperCase()
+  }
+  return user.email.split('@')[0].slice(0, 2).toUpperCase()
 }
 
 /** Shell for authenticated, workspace-scoped pages: the top bar plus page content. */
@@ -86,18 +95,35 @@ export function AppLayout() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
+                aria-label="Account menu"
                 className="bg-g900 font-display grid size-[34px] place-items-center rounded-full text-[13px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-g900 focus-visible:ring-offset-2"
               >
-                {user ? initialsFromEmail(user.email) : '·'}
+                {user ? initialsFor(user) : '·'}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
               {user && (
-                <div className="text-g500 px-2 py-1.5 text-xs">
-                  {user.email}
+                <div className="px-2 py-1.5">
+                  {user.name.trim() && (
+                    <div className="text-g900 truncate text-[13px] font-semibold">
+                      {user.name}
+                    </div>
+                  )}
+                  <div className="text-g500 truncate text-xs">{user.email}</div>
                 </div>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Settings className="mr-2 size-4" strokeWidth={1.5} />
+                Account settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/select-workspace')}>
+                <ArrowLeftRight className="mr-2 size-4" strokeWidth={1.5} />
+                Switch workspace
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onLogout} disabled={isPending}>
+                <LogOut className="mr-2 size-4" strokeWidth={1.5} />
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

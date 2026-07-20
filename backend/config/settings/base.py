@@ -119,6 +119,7 @@ REST_FRAMEWORK = {
         "refresh": "30/min",
         "register": "20/hour",
         "password_reset": "5/hour",
+        "password_change": "10/hour",
         "reports_generate": "30/hour",
         "reports_pdf": "120/hour",
         "dashboards_generate": "30/hour",

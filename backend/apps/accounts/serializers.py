@@ -17,12 +17,50 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Read-only representation of the authenticated user."""
+    """The authenticated user; the display name is the only editable field.
+
+    Email is intentionally read-only — changing it would need a re-verification
+    flow we don't have yet.
+    """
 
     class Meta:
         model = User
-        fields = ["id", "email"]
+        fields = ["id", "email", "name"]
         read_only_fields = ["id", "email"]
+
+    def validate_name(self, value: str) -> str:
+        """Trim surrounding whitespace so names stay tidy."""
+        return value.strip()
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Validate a signed-in user's password change (current + new password)."""
+
+    current_password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    new_password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+    def validate_current_password(self, value: str) -> str:
+        """Reject the change unless the current password is correct."""
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Your current password is incorrect.")
+        return value
+
+    def validate_new_password(self, value: str) -> str:
+        """Enforce the project's password policy on the new password."""
+        user = self.context["request"].user
+        try:
+            validate_password(value, user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
+        return value
+
+    def save(self) -> User:
+        """Persist the new password for the request's user."""
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        return user
 
 
 class LogoutSerializer(serializers.Serializer):

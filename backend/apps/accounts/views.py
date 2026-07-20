@@ -12,6 +12,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .serializers import (
     LogoutSerializer,
+    PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
@@ -104,7 +105,7 @@ class RefreshView(TokenRefreshView):
 
 
 class MeView(APIView):
-    """Return the currently authenticated user."""
+    """Read or update the currently authenticated user's profile."""
 
     permission_classes = [IsAuthenticated]
 
@@ -112,6 +113,31 @@ class MeView(APIView):
         """Return the authenticated user's public profile."""
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+    def patch(self, request: Request) -> Response:
+        """Update the authenticated user's editable profile fields (name)."""
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class PasswordChangeView(APIView):
+    """Change the signed-in user's password after checking the current one."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_change"
+
+    def post(self, request: Request) -> Response:
+        """Validate the current password and store the new one."""
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"detail": "Your password has been changed."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class LogoutView(APIView):

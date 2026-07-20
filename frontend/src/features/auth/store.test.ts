@@ -17,7 +17,9 @@ describe('auth store', () => {
 
   it('clears tokens and user on logout', () => {
     useAuthStore.getState().setTokens({ access: 'a', refresh: 'r' })
-    useAuthStore.getState().setUser({ id: '1', email: 'user@example.com' })
+    useAuthStore
+      .getState()
+      .setUser({ id: '1', email: 'user@example.com', name: '' })
 
     useAuthStore.getState().clear()
 

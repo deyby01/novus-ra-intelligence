@@ -1,14 +1,17 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clearSession } from '@/lib/session'
 import {
+  changePassword,
   confirmPasswordReset,
   getMe,
   login,
   logout,
   register,
   requestPasswordReset,
+  updateMe,
 } from './api'
 import { useAuthStore } from './store'
+import type { User } from './types'
 
 export function useLogin() {
   const setTokens = useAuthStore((state) => state.setTokens)
@@ -34,6 +37,20 @@ export function useMe() {
     queryFn: getMe,
     enabled: isAuthenticated,
   })
+}
+
+/** Update the signed-in user's profile (display name); refreshes the cached user. */
+export function useUpdateMe() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: updateMe,
+    onSuccess: (user: User) => queryClient.setQueryData(['me'], user),
+  })
+}
+
+/** Change the signed-in user's password (current + new). No side effects. */
+export function useChangePassword() {
+  return useMutation({ mutationFn: changePassword })
 }
 
 export function useLogout() {

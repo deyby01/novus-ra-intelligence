@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { SettingsPage } from '@/features/account/pages/settings-page'
 import { AppLayout } from '@/components/app-layout'
 import { ProtectedRoute } from '@/features/auth/components/protected-route'
 import { ForgotPasswordPage } from '@/features/auth/pages/forgot-password-page'
@@ -33,6 +34,7 @@ function App() {
                 path="/datasets/:datasetId"
                 element={<DatasetDetailPage />}
               />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/dashboards" element={<DashboardsPage />} />
               <Route
                 path="/dashboards/:dashboardId"

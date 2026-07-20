@@ -1,6 +1,17 @@
 export interface User {
   id: string
   email: string
+  /** Optional display name; falls back to the email when empty. */
+  name: string
+}
+
+export interface UpdateProfileInput {
+  name: string
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string
+  newPassword: string
 }
 
 export interface TokenPair {

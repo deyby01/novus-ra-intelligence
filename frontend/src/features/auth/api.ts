@@ -1,11 +1,13 @@
 import { apiClient } from '@/lib/api-client'
 import type {
+  ChangePasswordInput,
   LoginInput,
   PasswordResetConfirmInput,
   PasswordResetRequestInput,
   RegisterInput,
   RegisterResponse,
   TokenPair,
+  UpdateProfileInput,
   User,
 } from './types'
 
@@ -28,6 +30,22 @@ export async function register(
 export async function getMe(): Promise<User> {
   const { data } = await apiClient.get<User>('/auth/me/')
   return data
+}
+
+export async function updateMe(input: UpdateProfileInput): Promise<User> {
+  const { data } = await apiClient.patch<User>('/auth/me/', {
+    name: input.name,
+  })
+  return data
+}
+
+export async function changePassword(
+  input: ChangePasswordInput,
+): Promise<void> {
+  await apiClient.post('/auth/password/change/', {
+    current_password: input.currentPassword,
+    new_password: input.newPassword,
+  })
 }
 
 export async function logout(refresh: string): Promise<void> {

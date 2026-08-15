@@ -1,0 +1,10 @@
+# Code owners for Novus RA Intelligence.
+#
+# GitHub requests a review from the owners listed here whenever a pull request
+# touches a matching path. The repository owner reviews every change, so a
+# single catch-all rule is enough: @deyby01 is added as a reviewer
+# automatically on every pull request.
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @deyby01
